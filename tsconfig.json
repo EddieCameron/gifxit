@@ -8,6 +8,7 @@
       "sourceMap": true,
       "outDir": "dist",
       "baseUrl": ".",
+      "rootDir": "src",
       "paths": {
           "*": [
               "node_modules/*",
@@ -15,5 +16,8 @@
           ]
       }
     },
-    "lib": ["es2015"]
+    "lib": ["es2015"],
+    "include": [
+      "src/"
+    ]
   }

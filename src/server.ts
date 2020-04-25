@@ -1,7 +1,9 @@
 import { Pool, QueryConfig } from "pg";
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: true
+  ssl: {
+    rejectUnauthorized: false
+  }
 })
 
 export async function query<T>(query: string, ...params: any[]) {

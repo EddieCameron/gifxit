@@ -1,10 +1,7 @@
 import { Pool, QueryConfig } from "pg";
 const pool = new Pool({
-  user: 'bot',
-  host: 'localhost',
-  database: process.env.DATABASE_NAME,
-  password: process.env.DATABASE_PASSWORD,
-  port: 5432,
+  connectionString: process.env.DATABASE_URL,
+  ssl: true
 })
 
 export async function query<T>(query: string, ...params: any[]) {

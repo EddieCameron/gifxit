@@ -7,7 +7,7 @@
     "ts:build": "tsc",
     "build": "npm run ts:build",
     "postinstall": "npm run build",
-    "start": "node -r dotenv/config dist/src/index.js",
+    "start": "node -r dotenv/config dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "eddie cameron",

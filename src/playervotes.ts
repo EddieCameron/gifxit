@@ -81,24 +81,16 @@ function getVoteMessage(gifOptions: Gif[], keyword: string, mainPlayerSlackId: s
     return message;
 }
 
-export async function promptPlayerVotes(game: Game, allplayers: Player[], allGifs: Gif[] ) {
-    const playersToPrompt = allplayers.filter(p => p.id != game.currentplayerturn);
-    const mainPlayer = allplayers.find(p => p.id == game.currentplayerturn);
-
-    const playerGifs = []
-    for (let i = 0; i < allplayers.length; i++) {
-        playerGifs.push({
-            player: allplayers[i],
-            gif: allGifs[i]
-        });
-    }
+export async function promptPlayerVotes(game: Game, playerGifs: [Player,Gif][] ) {
+    const playersToPrompt = playerGifs.filter(g => g[0].id != game.currentplayerturn);
+    const mainPlayer = playerGifs.find(g => g[0].id == game.currentplayerturn)[0];
 
     // for reach player show them a shuffled list of gifs
     for (const player of playersToPrompt) {
-        const otherPlayerGifs = playerGifs.filter(g => g.player.id != player.id).map(g => g.gif);
+        const otherPlayerGifs = playerGifs.filter(g => g[0].id != player[0].id).map(g => g[1]);
         const voteMessage = getVoteMessage( shuffle( otherPlayerGifs ),
-            game.currentkeyword, mainPlayer.slack_user_id, game.id, player.id, game.currentturnidx);
-        await Slack.sendPm(player.slack_user_id, voteMessage);
+            game.currentkeyword, mainPlayer.slack_user_id, game.id, player[0].id, game.currentturnidx);
+        await Slack.postEphemeralMessage(game.slackchannelid, player[0].slack_user_id, voteMessage);
     }
 }
 

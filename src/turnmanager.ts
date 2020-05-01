@@ -175,7 +175,7 @@ function getPlayersReadyToVoteMessage(cards: Gif[], keyword: string): Slack.Mess
 
     let cardNumber = 1;
     for (const card of cards) {
-        message.blocks.push(getBigCardSection(card, cardNumber));
+        message.blocks.push(getSmallCardSection(card, cardNumber));
         cardNumber++;
     }
 
@@ -296,14 +296,14 @@ function getScoreSummaryMessage(players: Player[]) {
     }
 }
 
-async function dealCards(gameid: number, playerid: number) {
+async function dealCards(game: Game, playerid: number) {
     console.log( `Dealing cards to ${playerid}` )
     
-    const playercards = await GifController.dealCardsToPlayer(gameid, playerid);
+    const playercards = await GifController.dealCardsToPlayer(game.id, playerid);
     const player = await PlayerController.getPlayerWithId(playerid);
 
     const message = getCardHandMessage(playercards);
-    return Slack.sendPm(player.slack_user_id, message);
+    return Slack.postEphemeralMessage(game.slackchannelid, player.slack_user_id, message);
 }
 
 export async function startNextTurn( gameId: number ) {
@@ -312,7 +312,7 @@ export async function startNextTurn( gameId: number ) {
     // draw cards
     const allPlayers = await PlayerController.resetPlayersForNewTurn(gameId);
     for (const player of allPlayers) {
-        await dealCards(gameId, player.id);
+        await dealCards(game, player.id);
     }
 
     // go to next player
@@ -320,7 +320,7 @@ export async function startNextTurn( gameId: number ) {
     await Slack.postMessage( game.slackchannelid, { text: `It's <@${nextplayer.slack_user_id}>'s turn!` })
 
     // prompt main player
-    return PlayerChoose.promptMainPlayerTurn(nextplayer.slack_user_id, game.id, nextplayer.id, game.currentturnidx);
+    return PlayerChoose.promptMainPlayerTurn(nextplayer.slack_user_id, game, nextplayer.id, game.currentturnidx);
 }
 
 async function showScoreSummary(game: Game) {
@@ -385,7 +385,7 @@ export async function mainPlayerChoose(gameid: number, playerId: number, cardId:
     // get players to choose their own
     const allplayers = await PlayerController.getPlayersForGame(game.id);
     const otherplayers = allplayers.filter(p => p.id != player.id);
-    return PlayerChoose.promptOtherPlayersTurns(otherplayers, player.slack_user_id, keyword, gameid, game.currentturnidx);
+    return PlayerChoose.promptOtherPlayersTurns(otherplayers, player.slack_user_id, keyword, game, game.currentturnidx);
 }
 
 export async function otherPlayerChoose(gameid: number, playerId: number, cardId: number) {
@@ -398,7 +398,12 @@ export async function otherPlayerChoose(gameid: number, playerId: number, cardId
         const allplayers = await PlayerController.getPlayersForGame(game.id);
         const allGifs = await GifController.getCards(allplayers.map(p => p.chosen_gif_id));
         await Slack.postMessage(game.slackchannelid, getPlayersReadyToVoteMessage(allGifs, game.currentkeyword));
-        await PlayerVotes.promptPlayerVotes(game, allplayers, allGifs);
+
+        const playerGifs: [Player, Gif][] = []
+        for (const player of allplayers) {
+            playerGifs.push([player, allGifs.find(g => g.id == player.chosen_gif_id)]);
+        }
+        await PlayerVotes.promptPlayerVotes(game, playerGifs);
     }
     else {
         // tell everyone that choice was made, show remainign players

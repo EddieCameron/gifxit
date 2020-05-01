@@ -2,89 +2,63 @@ import * as DB from "./server"
 import Gif from "./models/gif"
 import GameGif from "./models/gamegif"
 
-const gifs: Gif[] = []
-const gifsById: { [id: number]: Gif } = {}
-const gameGifs: { [gameid: number]: GameGif[] } = {}
-
-async function loadGifs() {
-    if (gifs.length == 0) {
-        const dbgifs = await DB.query<Gif>("SELECT * FROM gifs");
-        console.log(dbgifs.length);
-        Array.prototype.push.apply(gifs, dbgifs)
-        console.log(gifs.length);
-        for (const gif of gifs) {
-            gifsById[gif.id] = gif;
-        }
-    }
-}
-
-async function loadGameGifs(gameid: number) {
-    if (gameGifs[gameid] != undefined)
-        return gameGifs[gameid];
-    
-    gameGifs[gameid] = await DB.query<GameGif>("SELECT * FROM game_gifs WHERE game_id=$1", gameid);
-    return gameGifs[gameid];
-}
+export const HAND_SIZE = 5;
 
 async function createGameCard(card_id: number, game_id: number, player_id: number) {
-    const gamecard = (await DB.query<GameGif>("INSERT INTO game_gifs(gif_id, game_id, player_id) VALUES($1, $2, $3) RETURNING *", card_id, game_id, player_id))[0];
-    gameGifs[game_id].push(gamecard);
-    return gamecard;
+    return (await DB.query<GameGif>("INSERT INTO game_gifs(gif_id, game_id, player_id) VALUES($1, $2, $3) RETURNING *", card_id, game_id, player_id))[0];
 }
 
 export async function getCard(cardId: number) {
-    await loadGifs();
-    return gifsById[cardId];
+    return ( await DB.query<Gif>("SELECT * FROM gifs WHERE id=$1", cardId) )[0];
 }
 
 export async function getCards(cardIds: number[]) {
-    await loadGifs();
-    const cards = []
-    for (const cardId of cardIds) {
-        cards.push(gifsById[cardId]);
-    }
-    return cards
+    return await DB.query<Gif>("SELECT * FROM gifs WHERE id = ANY($1)", cardIds);
 }
 
-export async function getPlayerCards(gameid: number, playerid: number) {
-    await loadGifs();
-    const allGameGifs = await loadGameGifs(gameid);
-
-    return allGameGifs.filter((g) => g.player_id == playerid).map(g => gifsById[g.gif_id]);
+export async function getPlayerCards(gameId: number, playerId: number) {
+    return await DB.query<Gif>("SELECT gif.* FROM game_gifs game INNER JOIN gifs gif ON game.gif_id = gif.id WHERE player_id=$1 AND game_id=$2", playerId, gameId);
 }
 
-export async function dealCardsToPlayer(gameid: number, playerid: number, numCardsToDeal: number) {
-    const [thisGameGifs] = await Promise.all([
-        loadGameGifs(gameid),
-        loadGifs()]);
+export async function dealCardsToPlayer(gameid: number, playerid: number) {
+    const playercards = await getPlayerCards(gameid, playerid)
 
-    const newCards: GameGif[] = []
-    for (let i = 0; i < numCardsToDeal; i++) {
-        for (let attempts = 0; attempts < 100; attempts++) {
-            // try picking a new random card
-            if (attempts == 99) {
-                // no more!
-                console.error("Ran out of new cards somehow");
-                return;
-            }
-                
-            const nextCard = gifs[Math.floor(Math.random() * gifs.length)];
-            
-            if (newCards.some(c => c.gif_id == nextCard.id)) {
-                // have alredy dealt this card
-                continue;
-            }
-                
-            if (thisGameGifs.length < gifs.length) {
-                // check that gif hasn't already been used
-                if (thisGameGifs.some(g => g.gif_id == nextCard.id)) {
-                    continue;   // try again
+    const numCardsToDeal = HAND_SIZE - playercards.length;
+    console.log( `Dealing ${numCardsToDeal} cards to ${playerid}` )
+
+    if (numCardsToDeal > 0) {
+        const allGifs = await DB.query<Gif>("SELECT * FROM gifs");
+        const thisGameGifs = await DB.query<GameGif>("SELECT * FROM game_gifs WHERE game_id=$1", gameid);
+
+        for (let i = 0; i < numCardsToDeal; i++) {
+            for (let attempts = 0; attempts < 100; attempts++) {
+                // try picking a new random card
+                if (attempts == 99) {
+                    // no more!
+                    console.error("Ran out of new cards somehow");
+                    return;
                 }
-            }
+                
+                const nextCard = allGifs[Math.floor(Math.random() * allGifs.length)];
+            
+                if (playercards.some(c => c.id == nextCard.id)) {
+                    // have alredy dealt this card
+                    continue;
+                }
+                
+                if (thisGameGifs.length < allGifs.length) {
+                    // check that gif hasn't already been used
+                    if (thisGameGifs.some(g => g.gif_id == nextCard.id)) {
+                        continue;   // try again
+                    }
+                }
 
-            // give card to player
-            newCards.push( await createGameCard(nextCard.id, gameid, playerid) );
-            break;
+                // give card to player
+                await createGameCard(nextCard.id, gameid, playerid);
+                playercards.push(nextCard);
+                break;
+            }
         }
-    }    
+    }
+    return playercards;
 }

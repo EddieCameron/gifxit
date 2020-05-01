@@ -95,8 +95,8 @@ export async function promptPlayerVotes(game: Game, allplayers: Player[], allGif
 
     // for reach player show them a shuffled list of gifs
     for (const player of playersToPrompt) {
-        shuffle(playerGifs);
-        const voteMessage = getVoteMessage(playerGifs.filter(g => g.player.id != player.id).map(g => g.gif),
+        const otherPlayerGifs = playerGifs.filter(g => g.player.id != player.id).map(g => g.gif);
+        const voteMessage = getVoteMessage( shuffle( otherPlayerGifs ),
             game.currentkeyword, mainPlayer.slack_user_id, game.id, player.id, game.currentturnidx);
         await Slack.sendPm(player.slack_user_id, voteMessage);
     }

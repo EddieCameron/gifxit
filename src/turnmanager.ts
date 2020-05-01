@@ -10,8 +10,6 @@ import GifVote from "./models/gifvotes"
 import Game from "./models/game"
 import Player from "./models/player"
 
-const HAND_SIZE = 5;
-
 export function getEmojiForNumber(num: number) {
     switch (num) {
         case 0:
@@ -300,20 +298,11 @@ function getScoreSummaryMessage(players: Player[]) {
 
 async function dealCards(gameid: number, playerid: number) {
     console.log( `Dealing cards to ${playerid}` )
-    const playercards = await GifController.getPlayerCards(gameid, playerid)
-
-    const cardsToDeal = HAND_SIZE - playercards.length;
-    console.log( `Dealing ${cardsToDeal} cards to ${playerid}` )
-
-    if (cardsToDeal <= 0)
-        return;
     
-    await GifController.dealCardsToPlayer(gameid, playerid, cardsToDeal);
-
-    const allcards = await GifController.getPlayerCards(gameid, playerid);
+    const playercards = await GifController.dealCardsToPlayer(gameid, playerid);
     const player = await PlayerController.getPlayerWithId(playerid);
 
-    const message = getCardHandMessage(allcards);
+    const message = getCardHandMessage(playercards);
     return Slack.sendPm(player.slack_user_id, message);
 }
 
@@ -423,7 +412,7 @@ export async function playerVote(gameId: number, playerId: number, gifId: number
     console.log(game.id);
     const chosenPlayer = await PlayerController.getPlayerWithId(playerId);
     console.log(chosenPlayer.id);
-    
+
     let remainingPlayers = await PlayerController.voteForGif(playerId, gifId);
     remainingPlayers = remainingPlayers.filter(p => p.id != game.currentplayerturn);
 

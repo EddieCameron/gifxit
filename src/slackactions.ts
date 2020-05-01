@@ -164,8 +164,8 @@ export async function handleStartNextTurnAction(payload: Slack.ActionPayload, re
     console.log("Starting next turn");
     
     const game = await GameController.getGameForSlackChannel(payload.channel.id)
-    if (game == undefined || game.currentturnidx > 0) {
-        respond({ replace_original: true, text: "This game doesn't exit or has already started" });
+    if (game == undefined) {
+        respond({ replace_original: true, text: "This game doesn't exist" });
         return;
     }
 
@@ -178,7 +178,7 @@ export async function handleStartNextTurnAction(payload: Slack.ActionPayload, re
     respond({ delete_original: true });
 }
 
-async function handleNoQuerySlash(game: Game, slackId: string) {
+async function handleNoQuerySlash(game: Game, slackId: string): Promise<Slack.SlashResponse> {
     // see what we can do
 
     if (game === undefined) {
@@ -197,7 +197,7 @@ async function handleNoQuerySlash(game: Game, slackId: string) {
             if (game.currentkeyword == undefined) {
                 // prompt main player turn
                 const message = PlayerChoose.getMainPlayerChoosePromptMessage(game.id, thisPlayer.id, game.currentturnidx);
-                return { response_type: "ephemeral", text: message.text, blocks: message.blocks } as Slack.SlashResponse;
+                return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
             }
         }
         else {
@@ -205,18 +205,20 @@ async function handleNoQuerySlash(game: Game, slackId: string) {
                 //prompt other player choose card
                 const mainPlayer = players.find(p => p.id == game.currentplayerturn);
                 const message = PlayerChoose.getOhterPlayerChoosePromptMessage(game.currentkeyword, mainPlayer.slack_user_id, game.id, thisPlayer.id, game.currentturnidx);
-                return { response_type: "ephemeral", text: message.text, blocks: message.blocks } as Slack.SlashResponse;
+                return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
             }
             else if (thisPlayer.voted_gif_id == undefined) {
                 // prompt other player vote
                 const message = await PlayerVotes.getPlayerVotePrompt(game, thisPlayer);
-                return { response_type: "ephemeral", text: message.text, blocks: message.blocks } as Slack.SlashResponse;
+                return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
             }
         }
     }
     else {
         return getJoinGameReponse(game.id);
     }
+
+    return { response_type: "ephemeral", text: "There's nothing to do here..." };
 }
 
 // creates and runs games

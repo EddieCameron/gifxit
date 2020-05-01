@@ -319,23 +319,13 @@ function getNextTurnPrompt(currentTurnIdx: number): Slack.SlashResponse {
     }
 }
 
-async function dealCards(game: Game, playerid: number) {
-    console.log( `Dealing cards to ${playerid}` )
-    
-    const playercards = await GifController.dealCardsToPlayer(game.id, playerid);
-    const player = await PlayerController.getPlayerWithId(playerid);
-
-    const message = getCardHandMessage(playercards);
-    return Slack.postEphemeralMessage(game.slackchannelid, player.slack_user_id, message);
-}
-
 export async function startNextTurn( gameId: number ) {
     const game = await GameController.startNextTurn(gameId);
 
     // draw cards
     const allPlayers = await PlayerController.resetPlayersForNewTurn(gameId);
     for (const player of allPlayers) {
-        await dealCards(game, player.id);
+        await GifController.dealCardsToPlayer(game.id, player.id);
     }
 
     // go to next player

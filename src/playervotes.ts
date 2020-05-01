@@ -81,6 +81,15 @@ function getVoteMessage(gifOptions: Gif[], keyword: string, mainPlayerSlackId: s
     return message;
 }
 
+export async function getPlayerVotePrompt(game: Game, player: Player) {
+    const allPlayers = await PlayerController.getPlayersForGame(game.id);
+    const mainPlayer = allPlayers.find(p => p.id == game.currentplayerturn);
+    const otherPlayers = allPlayers.filter(p => p.id != player.id);
+
+    const chosenGifs = await GifController.getCards(otherPlayers.map(p => p.chosen_gif_id));
+    return getVoteMessage(shuffle(chosenGifs), game.currentkeyword, mainPlayer.slack_user_id, game.id, player.id, game.currentturnidx);
+}
+
 export async function promptPlayerVotes(game: Game, playerGifs: [Player,Gif][] ) {
     const playersToPrompt = playerGifs.filter(g => g[0].id != game.currentplayerturn);
     const mainPlayer = playerGifs.find(g => g[0].id == game.currentplayerturn)[0];
@@ -107,8 +116,5 @@ export async function handlePlayerVote(payload: Slack.ActionPayload, respond: (m
 
     await TurnManager.playerVote(game.id, voteMetadata.playerId, voteMetadata.gifId);
     
-    // remove vote menu
-    const returnMsg = payload.message;
-    returnMsg.blocks.pop();
     respond({ replace_original: true, text: "👌" });
 }

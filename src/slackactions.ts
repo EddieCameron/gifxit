@@ -72,7 +72,7 @@ function getJoinGameReponse(gameId: number): Slack.SlashResponse {
 
 const INVITE_PLAYER_CALLBACK = "invite_player_callback";
 const START_GAME_ACTION_CALLBACK = "start_game_callback";
-const gameActionsPrompt: Slack.SlashResponse = {
+const unStartedGameActionsPrompt: Slack.SlashResponse = {
     response_type: "ephemeral",
     text: "Do you want to begin the game?",
     blocks: [
@@ -124,7 +124,7 @@ const gameActionsPrompt: Slack.SlashResponse = {
 export async function handleCreateGameAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void): Promise<void> {
     await GameManager.createGame(payload.channel.id, payload.user.id);
 
-    respond({ replace_original: true, text: gameActionsPrompt.text, blocks: gameActionsPrompt.blocks });
+    respond({ replace_original: true, text: unStartedGameActionsPrompt.text, blocks: unStartedGameActionsPrompt.blocks });
 }
 
 export async function handleJoinGameAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
@@ -169,12 +169,35 @@ async function handleNoQuerySlash(game: Game, slackId: string) {
     }
 
     const players = await PlayerController.getPlayersForGame(game.id);
-    if (players.some(p => p.slack_user_id == slackId)) {
+    const thisPlayer = players.find( p => p.slack_user_id == slackId )
+    if (thisPlayer != undefined) {
         // we're in this game
-        return gameActionsPrompt;
+        if (game.currentturnidx == 0) {
+            return unStartedGameActionsPrompt;
+        }
+        else if (game.currentplayerturn == thisPlayer.id ) {
+            if (game.currentkeyword == undefined) {
+                // prompt main player turn
+                const message = PlayerChoose.getMainPlayerChoosePromptMessage(game.id, thisPlayer.id, game.currentturnidx);
+                return { response_type: "ephemeral", text: message.text, blocks: message.blocks } as Slack.SlashResponse;
+            }
+        }
+        else {
+            if (thisPlayer.chosen_gif_id == undefined) {
+                //prompt other player choose card
+                const mainPlayer = players.find(p => p.id == game.currentplayerturn);
+                const message = PlayerChoose.getOhterPlayerChoosePromptMessage(game.currentkeyword, mainPlayer.slack_user_id, game.id, thisPlayer.id, game.currentturnidx);
+                return { response_type: "ephemeral", text: message.text, blocks: message.blocks } as Slack.SlashResponse;
+            }
+            else if (thisPlayer.voted_gif_id == undefined) {
+                // prompt other player vote
+                const message = await PlayerVotes.getPlayerVotePrompt(game, thisPlayer);
+                return { response_type: "ephemeral", text: message.text, blocks: message.blocks } as Slack.SlashResponse;
+            }
+        }
     }
     else {
-        return getJoinGameReponse( game.id );
+        return getJoinGameReponse(game.id);
     }
 }
 
@@ -204,10 +227,10 @@ export async function handleSlash(slashPayload: Slack.SlashPayload): Promise<Sla
                 return { response_type: "ephemeral", text: "Need to provide a GIF url" };
             return addGif(slashQuery[1]);
 
-            case "removegif":
-                if (slashQuery.length < 2)
-                    return { response_type: "ephemeral", text: "Need to provide a GIF url" };
-                return removeGif(slashQuery[1]);
+        case "removegif":
+            if (slashQuery.length < 2)
+                return { response_type: "ephemeral", text: "Need to provide a GIF url" };
+            return removeGif(slashQuery[1]);
         
         default:
             return handleNoQuerySlash(game, slashPayload.user_id);

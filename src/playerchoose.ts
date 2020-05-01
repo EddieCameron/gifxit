@@ -17,7 +17,7 @@ interface ChoosePlayerCardPromptMetadata {
 interface ChoosePlayerCardModalMetadata extends ChoosePlayerCardPromptMetadata{
     srcMessageChannel: string;
 }
-function getMainPlayerChoosePromptMessage(gameId: number, playerId: number, turnIdx: number) {
+export function getMainPlayerChoosePromptMessage(gameId: number, playerId: number, turnIdx: number) {
     const metadata: ChoosePlayerCardPromptMetadata = {
         gameId: gameId,
         playerId: playerId,
@@ -67,7 +67,7 @@ function getMainPlayerChoosePromptMessage(gameId: number, playerId: number, turn
     }
 }
 export const START_OTHER_PLAYER_CHOOSE_ACTION_ID = "start_other_player_choose";
-function getOhterPlayerChoosePromptMessage(keyword: string, mainPlayerId: string, gameId: number, playerId: number, turnIdx: number) {
+export function getOhterPlayerChoosePromptMessage(keyword: string, mainPlayerId: string, gameId: number, playerId: number, turnIdx: number) {
     const metadata: ChoosePlayerCardPromptMetadata = {
         gameId: gameId,
         playerId: playerId,

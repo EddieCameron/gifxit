@@ -25,3 +25,13 @@ export async function addGif(url: string): Promise<SlashResponse> {
         return { response_type: "ephemeral", text: "Couldn't add GIF. Was the URL unique?" };
     }
 }
+
+export async function removeGif(url: string): Promise<SlashResponse> {
+    try {
+        await query("DELETE FROM gifs WHERE url=$1", url);
+        return { response_type: "ephemeral", text: "Removed " + url };
+    }
+    catch (e) {
+        return { response_type: "ephemeral", text: "Couldn't remove GIF. Was this ever actually a gif?" };
+    }
+}

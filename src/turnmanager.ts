@@ -115,7 +115,7 @@ function getMainPlayerChoseMessage(mainPlayerSlackId: string, keyword: string): 
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: `Their keyword is *${keyword}*`
+                    text: `Their message is *${keyword}*`
                 }
             },
             {
@@ -423,11 +423,13 @@ export async function playerVote(gameId: number, playerId: number, gifId: number
     console.log(game.id);
     const chosenPlayer = await PlayerController.getPlayerWithId(playerId);
     console.log(chosenPlayer.id);
-    const remainingPlayers = await PlayerController.voteForGif(playerId, gifId);
+    
+    let remainingPlayers = await PlayerController.voteForGif(playerId, gifId);
+    remainingPlayers = remainingPlayers.filter(p => p.id != game.currentplayerturn);
 
     console.log("Player " + chosenPlayer.id + " voted for " + gifId);
 
-    if (remainingPlayers.length == 1) {
+    if (remainingPlayers.length == 0) {
         // only the first player is left
         // resolve! get those votes
         const votes = await PlayerController.getAllVotes(game.id);

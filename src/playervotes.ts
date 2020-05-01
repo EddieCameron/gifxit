@@ -39,7 +39,7 @@ function getVoteMessage(gifOptions: Gif[], keyword: string, mainPlayerSlackId: s
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: `🗳Vote for the card that you think <@${mainPlayerSlackId}> chose for the keyword *${keyword}* 🗳`
+                    text: `🗳Vote for the card that you think <@${mainPlayerSlackId}> chose for the message: *${keyword}* 🗳`
                 }
             }
         ]

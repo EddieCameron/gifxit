@@ -6,7 +6,7 @@ import * as PlayerChoose from "./playerchoose"
 import * as PlayerVotes from "./playervotes"
 import * as Slack from "./slack"
 import * as PlayerInvite from "./playerinvite"
-import { addGif } from "./addgif"
+import { addGif, removeGif } from "./addgif"
 import Game from "./models/game"
 
 const CREATE_GAME_ACTION_CALLBACK = "create_game_callback";
@@ -199,6 +199,11 @@ export async function handleSlash(slashPayload: Slack.SlashPayload): Promise<Sla
             if (slashQuery.length < 2)
                 return { response_type: "ephemeral", text: "Need to provide a GIF url" };
             return addGif(slashQuery[1]);
+
+            case "removegif":
+                if (slashQuery.length < 2)
+                    return { response_type: "ephemeral", text: "Need to provide a GIF url" };
+                return removeGif(slashQuery[1]);
         
         default:
             return handleNoQuerySlash(game, slashPayload.user_id);

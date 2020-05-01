@@ -160,6 +160,24 @@ export async function handleInvitePlayerAction(payload: Slack.ActionPayload, res
     await PlayerInvite.invitePlayer(game, invitedPlayer, payload.user.id);
 }
 
+export async function handleStartNextTurnAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
+    console.log("Starting next turn");
+    
+    const game = await GameController.getGameForSlackChannel(payload.channel.id)
+    if (game == undefined || game.currentturnidx > 0) {
+        respond({ replace_original: true, text: "This game doesn't exit or has already started" });
+        return;
+    }
+
+    if (game.currentturnidx != +payload.actions[0].value) {
+        respond({ replace_original: true, text: "This turn has already started" });
+        return;
+    }
+
+    await TurnManager.startNextTurn(game.id);
+    respond({ delete_original: true });
+}
+
 async function handleNoQuerySlash(game: Game, slackId: string) {
     // see what we can do
 
@@ -262,6 +280,7 @@ export function init(): void {
     Slack.addActionHandler({ actionId: JOIN_GAME_ACTION_CALLBACK }, handleJoinGameAction);
     Slack.addActionHandler({ actionId: START_GAME_ACTION_CALLBACK }, handleStartGameAction);
     Slack.addActionHandler({ actionId: INVITE_PLAYER_CALLBACK }, handleInvitePlayerAction);
+    Slack.addActionHandler({ actionId: TurnManager.NEXT_TURN_CALLBACK }, handleStartNextTurnAction);
     Slack.addActionHandler({ actionId: PlayerInvite.ACCEPT_INVITE_CALLBACK }, handleJoinGameAction);
     Slack.addActionHandler({ actionId: PlayerChoose.START_MAIN_PLAYER_CHOOSE_ACTION_ID }, PlayerChoose.handleStartMainPlayerChoose);
     Slack.addActionHandler({ actionId: PlayerChoose.START_OTHER_PLAYER_CHOOSE_ACTION_ID }, PlayerChoose.handleStartOtherPlayerChoose);

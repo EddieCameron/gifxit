@@ -115,15 +115,6 @@ function getMainPlayerChoseMessage(mainPlayerSlackId: string, keyword: string): 
                     type: "mrkdwn",
                     text: `Their message is *${keyword}*`
                 }
-            },
-            {
-                type: "context",
-                elements: [
-                    {
-                        type: "mrkdwn",
-                        text: "(Check your DMs to continue)"
-                    }
-                ]
             }
         ]
     }
@@ -296,6 +287,38 @@ function getScoreSummaryMessage(players: Player[]) {
     }
 }
 
+export const NEXT_TURN_CALLBACK = "start_next_turn";
+function getNextTurnPrompt(currentTurnIdx: number): Slack.SlashResponse {
+    return {
+        response_type: "ephemeral",
+        text: "Are you ready to start the next turn?",
+        blocks: [
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: "Are you ready to start the next turn?"
+                }
+            },
+            {
+                type: "actions",
+                elements: [
+                    {
+                        action_id: NEXT_TURN_CALLBACK,
+                        type: "button",
+                        text: {
+                            type: "plain_text",
+                            text: "Next Turn"
+                        },
+                        style: "primary",
+                        value: currentTurnIdx.toString()
+                    }
+                ]
+            }
+        ]
+    }
+}
+
 async function dealCards(game: Game, playerid: number) {
     console.log( `Dealing cards to ${playerid}` )
     
@@ -370,7 +393,7 @@ async function scoreVotes(game: Game, gifVotes: GifVote[]) {
 
     await showScoreSummary(game);
 
-    return startNextTurn(game.id);
+    await Slack.postMessage( game.slackchannelid, getNextTurnPrompt(game.currentturnidx ) );
 }
 
 export async function mainPlayerChoose(gameid: number, playerId: number, cardId: number, keyword: string) {

@@ -437,6 +437,10 @@ export async function startGame(gameid: number) {
 }
 
 /// debug
+export async function debugRestartTurn(game: Game) {
+    startNextTurn(game.id);
+}
+
 export async function debugScoreTurn(game: Game) {
     if (game == undefined)
         return;

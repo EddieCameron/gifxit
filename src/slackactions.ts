@@ -184,7 +184,7 @@ export async function handleSlash(slashPayload: Slack.SlashPayload): Promise<Sla
     const game = await GameController.getGameForSlackChannel(slashPayload.channel_id);
 
     console.log(slashPayload.text);
-    const slashQuery = slashPayload.text.toLowerCase().split(' ')
+    const slashQuery = slashPayload.text.split(' ')
     console.log( slashQuery.length)
     if (slashQuery.length == 0) {
         return handleNoQuerySlash(game, slashPayload.user_id);

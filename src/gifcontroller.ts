@@ -17,7 +17,7 @@ export async function getCards(cardIds: number[]) {
 }
 
 export async function getPlayerCards(gameId: number, playerId: number) {
-    return await DB.query<Gif>("SELECT gif.* FROM game_gifs game INNER JOIN gifs gif ON game.gif_id = gif.id WHERE player_id=$1 AND game_id=$2", playerId, gameId);
+    return await DB.query<Gif>("SELECT gif.* FROM game_gifs game INNER JOIN gifs gif ON game.gif_id = gif.id WHERE game.player_id=$1 AND game.game_id=$2", playerId, gameId);
 }
 
 export async function dealCardsToPlayer(gameid: number, playerid: number) {

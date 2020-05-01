@@ -38,7 +38,7 @@ function getMainPlayerChoosePromptMessage(gameId: number, playerId: number, turn
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: "Choose a GIF, and write a keyword that you think would generate it"
+                    text: "When you can, write a short message and choose a GIF that would be a good response to it"
                 }
             },
             {
@@ -88,7 +88,7 @@ function getOhterPlayerChoosePromptMessage(keyword: string, mainPlayerId: string
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: `Choose a GIF you think <@${mainPlayerId}> could have found with *${keyword}*`
+                    text: `Choose a reaction GIF for *${keyword}*`
                 }
             },
             {
@@ -195,7 +195,7 @@ function getMainPlayerChooseDialogue(cards: Gif[], gameId: number, playerId: num
         type: "input",
         "label": {
             "type": "plain_text",
-            "text": "Enter a keyword for your GIF",
+            "text": "Write a message that your GIF could be a reaction to",
             "emoji": true
         },
         "hint": {
@@ -207,7 +207,7 @@ function getMainPlayerChooseDialogue(cards: Gif[], gameId: number, playerId: num
             "type": "plain_text_input",
             "action_id": CHOOSE_MAIN_PLAYER_KEYWORD_BLOCK_ID + "_text",
             min_length: 3,
-            max_length: 500
+            max_length: 512
         }
     });
 

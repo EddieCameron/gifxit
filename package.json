@@ -7,6 +7,7 @@
     "ts:build": "tsc",
     "build": "npm run ts:build",
     "postinstall": "npm run build",
+    "dev": "./node_modules/nodemon/bin/nodemon.js",
     "start": "node -r dotenv/config dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -29,6 +30,7 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^2.29.0",
     "@typescript-eslint/parser": "^2.29.0",
-    "eslint": "^6.8.0"
+    "eslint": "^6.8.0",
+    "nodemon": "^2.0.3"
   }
 }

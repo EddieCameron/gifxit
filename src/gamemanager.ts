@@ -43,12 +43,12 @@ export async function createGame( slackChannel: string, slackUserId: string ) {
     
     const player = await doPlayerJoin(game.id, slackUserId);
 
-    return printGameInfoMessage(game, [player]);
+    await printGameInfoMessage(game, [player]);
+    return game;
 }
 
-export async function joinGame(slackChannel: string, slackUserId: string) {
-    console.log("Joining game in: " + slackChannel);
-    const game = await GameController.getGameForSlackChannel(slackChannel);
+export async function joinGame(gameId: number, slackUserId: string) {
+    const game = await GameController.getGameForId(gameId);
     await doPlayerJoin(game.id, slackUserId);
 
     const players = await PlayerController.getPlayersForGame(game.id);

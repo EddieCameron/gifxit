@@ -328,7 +328,7 @@ export async function startNextTurn( gameId: number ) {
 
     // go to next player
     const nextplayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
-    await Slack.postMessage( game.slackchannelid, { text: `It's *<@${nextplayer.slack_user_id}>'s turn!` })
+    await Slack.postMessage( game.slackchannelid, { text: `It's <@${nextplayer.slack_user_id}>'s turn!` })
 
     // prompt main player
     return PlayerChoose.promptMainPlayerTurn(nextplayer.slack_user_id, game.id, nextplayer.id, game.currentturnidx);

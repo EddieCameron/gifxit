@@ -244,6 +244,7 @@ export interface ActionPayload {
             block_id: string;
             value?: string;
             selected_option?: Option;
+            selected_user?: string;
         }
     ];
 }

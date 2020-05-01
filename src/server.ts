@@ -1,9 +1,14 @@
-import { Pool, QueryConfig } from "pg";
+import { Pool, QueryConfig, Connection, PoolConfig } from "pg";
+console.log(process.env.DATABASE_URL)
+
+const poolConfig: PoolConfig = {
+  connectionString: process.env.DATABASE_URL
+}
+if (process.env.DATABASE_SSL != undefined)
+  poolConfig.ssl = JSON.parse(process.env.DATABASE_SSL);
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  connectionString: process.env.DATABASE_URL
 })
 
 export async function query<T>(query: string, ...params: any[]) {

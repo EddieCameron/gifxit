@@ -5,6 +5,7 @@ import * as TurnManager from "./turnmanager"
 import * as PlayerChoose from "./playerchoose"
 import * as PlayerVotes from "./playervotes"
 import * as Slack from "./slack"
+import * as PlayerInvite from "./playerinvite"
 import { addGif } from "./addgif"
 import Game from "./models/game"
 
@@ -38,39 +39,58 @@ const createGameResponse: Slack.SlashResponse = {
 }
 
 const JOIN_GAME_ACTION_CALLBACK = "join_game_callback";
-const joinGameReponse: Slack.SlashResponse = {
-    response_type: "ephemeral",
-    text: "Do you want to join this game?",
-    blocks: [
-        {
-            type: "section",
-            text: {
-                type: "mrkdwn",
-                text: "Do you want to join the Gifxit game in this channel?"
-            }
-        },
-        {
-            type: "actions",
-            elements: [
-                {
-                    action_id: JOIN_GAME_ACTION_CALLBACK,
-                    type: "button",
-                    text: {
-                        type: "plain_text",
-                        text: "Join"
-                    },
-                    style: "primary"
+function getJoinGameReponse(gameId: number): Slack.SlashResponse {
+    return {
+        response_type: "ephemeral",
+        text: "Do you want to join this game?",
+        blocks: [
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: "Do you want to join the Gifxit game in this channel?"
                 }
-            ]
-        }
-    ]
+            },
+            {
+                type: "actions",
+                elements: [
+                    {
+                        action_id: JOIN_GAME_ACTION_CALLBACK,
+                        type: "button",
+                        text: {
+                            type: "plain_text",
+                            text: "Join"
+                        },
+                        style: "primary",
+                        value: gameId.toString()
+                    }
+                ]
+            }
+        ]
+    }
 }
 
+const INVITE_PLAYER_CALLBACK = "invite_player_callback";
 const START_GAME_ACTION_CALLBACK = "start_game_callback";
-const startGamePrompt: Slack.SlashResponse = {
+const gameActionsPrompt: Slack.SlashResponse = {
     response_type: "ephemeral",
     text: "Do you want to begin the game?",
     blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: "Invite another player to the game"
+          },
+          accessory: {
+            action_id: INVITE_PLAYER_CALLBACK,
+            type: "users_select",
+            placeholder: {
+              type: "plain_text",
+              text: "Choose a player"
+            }
+          }
+        },
         {
             type: "section",
             text: {
@@ -103,12 +123,14 @@ const startGamePrompt: Slack.SlashResponse = {
 
 export async function handleCreateGameAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void): Promise<void> {
     await GameManager.createGame(payload.channel.id, payload.user.id);
-    respond({ delete_original: true });
+
+    respond({ replace_original: true, text: gameActionsPrompt.text, blocks: gameActionsPrompt.blocks });
 }
 
 export async function handleJoinGameAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
-    console.log("Joining game in: " + payload.channel.id);
-    await GameManager.joinGame(payload.channel.id, payload.user.id);
+    const gameId = +payload.actions[0].value;
+    console.log("Joining game " + gameId);
+    await GameManager.joinGame(gameId, payload.user.id);
     respond({ delete_original: true });
 }
 
@@ -124,6 +146,20 @@ export async function handleStartGameAction(payload: Slack.ActionPayload, respon
     respond({ delete_original: true });
 }
 
+export async function handleInvitePlayerAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
+    console.log(JSON.stringify(payload));
+    const invitedPlayer = payload.actions[0].selected_user;
+    console.log("Inviting player " + invitedPlayer);
+    
+    const game = await GameController.getGameForSlackChannel(payload.channel.id)
+    if (game == undefined || game.currentturnidx > 0) {
+        respond({ replace_original: true, text: "This game doesn't exit or has already started" });
+        return;
+    }
+
+    await PlayerInvite.invitePlayer(game, invitedPlayer, payload.user.id);
+}
+
 async function handleNoQuerySlash(game: Game, slackId: string) {
     // see what we can do
 
@@ -135,10 +171,10 @@ async function handleNoQuerySlash(game: Game, slackId: string) {
     const players = await PlayerController.getPlayersForGame(game.id);
     if (players.some(p => p.slack_user_id == slackId)) {
         // we're in this game
-        return startGamePrompt;
+        return gameActionsPrompt;
     }
     else {
-        return joinGameReponse;
+        return getJoinGameReponse( game.id );
     }
 }
 
@@ -193,6 +229,8 @@ export function init(): void {
     Slack.addActionHandler({ actionId: CREATE_GAME_ACTION_CALLBACK }, handleCreateGameAction);
     Slack.addActionHandler({ actionId: JOIN_GAME_ACTION_CALLBACK }, handleJoinGameAction);
     Slack.addActionHandler({ actionId: START_GAME_ACTION_CALLBACK }, handleStartGameAction);
+    Slack.addActionHandler({ actionId: INVITE_PLAYER_CALLBACK }, handleInvitePlayerAction);
+    Slack.addActionHandler({ actionId: PlayerInvite.ACCEPT_INVITE_CALLBACK }, handleJoinGameAction);
     Slack.addActionHandler({ actionId: PlayerChoose.START_MAIN_PLAYER_CHOOSE_ACTION_ID }, PlayerChoose.handleStartMainPlayerChoose);
     Slack.addActionHandler({ actionId: PlayerChoose.START_OTHER_PLAYER_CHOOSE_ACTION_ID }, PlayerChoose.handleStartOtherPlayerChoose);
     Slack.addActionHandler({ actionId: PlayerVotes.PLAYER_VOTE_ACTION_ID }, PlayerVotes.handlePlayerVote);

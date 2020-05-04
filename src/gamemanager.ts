@@ -3,6 +3,7 @@ import * as GameController from "./gamecontroller"
 import * as PlayerController from "./playercontroller"
 import Player from "./models/player";
 import Game from "./models/game";
+import { dealCardsToPlayer } from "./gifcontroller";
 
 function getGameInfoMessage(players: Player[]): Slack.Message {
     let playerText = "";
@@ -34,6 +35,7 @@ async function printGameInfoMessage(game: Game, players: Player[]) {
 async function doPlayerJoin(gameid: number, slackid: string) {
     console.log( "Player joining " + slackid)
     const newplayer = await PlayerController.createPlayer(slackid, gameid);
+    await dealCardsToPlayer(gameid, newplayer.id);
     return newplayer;
 }
 

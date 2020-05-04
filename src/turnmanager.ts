@@ -66,39 +66,7 @@ export function getBigCardSection(card: Gif, handNumber: number) {
     } as ImageBlock;
 }
 
-function getCardHandMessage(cards: Gif[]): Slack.Message {
-    const message: Slack.Message = {
-        text: "Your cards",
-        blocks: [
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: `🃏Here are your ${cards.length} gifs🃏`
-                }
-            },
-            {
-                type: "context",
-                elements: [
-                    {
-                        type: "mrkdwn",
-                        text: "(keep them secret🤫)"
-                    }
-                ]
-            }
-        ]
-    }
-
-    let cardNumber = 1;
-    for (const card of cards) {
-        message.blocks.push(getBigCardSection(card, cardNumber));
-        cardNumber++;
-    }
-
-    return message;
-}
-
-function getMainPlayerChoseMessage(mainPlayerSlackId: string, keyword: string): Slack.Message {
+export function getMainPlayerChoseMessage(mainPlayerSlackId: string, keyword: string, gameTurnIdx: number): Slack.Message {
     return {
         text: `<@${mainPlayerSlackId}> has picked their card`,
         blocks: [
@@ -115,6 +83,23 @@ function getMainPlayerChoseMessage(mainPlayerSlackId: string, keyword: string): 
                     type: "mrkdwn",
                     text: `Their message is *${keyword}*`
                 }
+            },
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: `Pick a reaction GIF for their message`
+                },
+                accessory: {
+                    type: "button",
+                    text: {
+                        type: "plain_text",
+                        text: "Pick a GIF"
+                    },
+                    style: "primary",
+                    value: gameTurnIdx.toString(),
+                    action_id: PlayerChoose.START_OTHER_PLAYER_CHOOSE_ACTION_ID
+                }
             }
         ]
     }
@@ -129,13 +114,13 @@ function getOtherPlayerChoseMessage(chosenPlayerSlackId: string, remainingPlayer
     });
 
     return {
-        text: `<@${chosenPlayerSlackId}> has picked their card`,
+        text: `<@${chosenPlayerSlackId}> has picked their GIF`,
         blocks: [
             {
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: `<@${chosenPlayerSlackId}> has picked their card`
+                    text: `<@${chosenPlayerSlackId}> has picked their GIF`
                 }
             },
             {
@@ -392,13 +377,8 @@ export async function mainPlayerChoose(gameid: number, playerId: number, cardId:
     const player = await PlayerController.getPlayerWithId(playerId);
 
     // TODO confirmation or something
-    const notifyEveryoneMessage = getMainPlayerChoseMessage(player.slack_user_id, keyword);
-    await Slack.postMessage(game.slackchannelid, notifyEveryoneMessage);
-
-    // get players to choose their own
-    const allplayers = await PlayerController.getPlayersForGame(game.id);
-    const otherplayers = allplayers.filter(p => p.id != player.id);
-    return PlayerChoose.promptOtherPlayersTurns(otherplayers, player.slack_user_id, keyword, game, game.currentturnidx);
+    const notifyEveryoneMessage = getMainPlayerChoseMessage(player.slack_user_id, keyword, game.currentturnidx);
+    return await Slack.postMessage(game.slackchannelid, notifyEveryoneMessage);
 }
 
 export async function otherPlayerChoose(gameid: number, playerId: number, cardId: number) {

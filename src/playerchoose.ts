@@ -7,8 +7,10 @@ import * as GifController from "./gifcontroller"
 import * as PlayerController from "./playercontroller"
 import Player from "./models/player";
 import Game from "./models/game";
+import { getJoinGameReponse } from "./slackactions";
 
 export const START_MAIN_PLAYER_CHOOSE_ACTION_ID = "start_main_player_choose";
+export const MAIN_PLAYER_PASS_ACTION_ID = "main_player_pass";
 interface ChoosePlayerCardPromptMetadata {
     gameId: number;
     playerId: number;
@@ -59,56 +61,17 @@ export function getMainPlayerChoosePromptMessage(gameId: number, playerId: numbe
                             type: "plain_text",
                             text: "Choose"
                         },
+                        style: "primary",
                         value: JSON.stringify(metadata)
-                    }
-                ]
-            }
-        ]
-    }
-}
-export const START_OTHER_PLAYER_CHOOSE_ACTION_ID = "start_other_player_choose";
-export function getOhterPlayerChoosePromptMessage(keyword: string, mainPlayerId: string, gameId: number, playerId: number, turnIdx: number) {
-    const metadata: ChoosePlayerCardPromptMetadata = {
-        gameId: gameId,
-        playerId: playerId,
-        turnIdx: turnIdx
-    }
-
-    return {
-        text: "It's your turn!",
-        blocks: [
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: "🕹 It's your turn! 🕹"
-                }
-            },
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: `Choose a reaction GIF for *${keyword}*`
-                }
-            },
-            {
-                type: "context",
-                elements: [{
-                    type: "mrkdwn",
-                    text: `Remember, you want the other players to think the GIF came from <@${mainPlayerId}>`
-                }
-                ]
-            },
-            {
-                type: "actions",
-                elements: [
+                    },
                     {
-                        action_id: START_OTHER_PLAYER_CHOOSE_ACTION_ID,
+                        action_id: MAIN_PLAYER_PASS_ACTION_ID,
                         type: "button",
                         text: {
                             type: "plain_text",
-                            text: "Choose"
+                            text: "Skip My Turn"
                         },
+                        style: "danger",
                         value: JSON.stringify(metadata)
                     }
                 ]
@@ -116,6 +79,8 @@ export function getOhterPlayerChoosePromptMessage(keyword: string, mainPlayerId:
         ]
     }
 }
+
+export const START_OTHER_PLAYER_CHOOSE_ACTION_ID = "start_other_player_choose";
 
 export const CHOOSE_MAIN_PLAYER_MODAL_CALLBACK_ID = "choose_main_player_callback";
 const CHOOSE_MAIN_PLAYER_CARD_BLOCK_ID = "choose_main_player_card";
@@ -268,6 +233,15 @@ function getOtherPlayerChooseDialogue(cards: Gif[], keyword: string, mainPlayerS
     }
 
     message.blocks.push({
+        type: "context",
+        elements: [{
+            type: "mrkdwn",
+            text: `Remember, you want the other players to think the GIF came from <@${mainPlayerSlackId}>`
+        }
+        ]
+    })
+
+    message.blocks.push({
         block_id: CHOOSE_OTHER_PLAYER_CARD_BLOCK_ID,
         type: "input",
         "label": {
@@ -305,6 +279,21 @@ export async function handleStartMainPlayerChoose(payload: Slack.ActionPayload, 
     // respond({ delete_original: true });
 }
 
+export async function handleMainPlayerPass(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
+    console.log("Main player is passing...");
+    const metadata = JSON.parse(payload.actions[0].value) as ChoosePlayerCardPromptMetadata;
+
+    const game = await GameController.getGameForId(metadata.gameId);
+    if (game == undefined|| game.currentturnidx != metadata.turnIdx||game.currentkeyword != undefined)
+        throw new Error("Unknown game");
+    if (metadata.playerId != game.currentplayerturn)
+        throw new Error("Not the main player but tried to pass");
+    
+
+    await TurnManager.startNextTurn(game.id);
+    respond({ delete_original: true });
+}
+
 export async function handleMainPlayerDialogueSubmit(payload: Slack.ViewSubmissionPayload): Promise<Slack.InteractiveViewResponse> {
     const metadata = JSON.parse(payload.view.private_metadata) as ChoosePlayerCardModalMetadata;
 
@@ -328,23 +317,28 @@ export async function promptMainPlayerTurn(slackId: string, game: Game, playerId
 }
 
 export async function handleStartOtherPlayerChoose(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
-    const metadata = JSON.parse(payload.actions[0].value) as ChoosePlayerCardPromptMetadata;
-    console.log("Other player is choosing..." + metadata.playerId);
+    const turnIdx = +payload.actions[0].value;
+    console.log("Other player is choosing..." + turnIdx);
 
-    const game = await GameController.getGameForId(metadata.gameId);
-    if (game == undefined|| game.currentturnidx != metadata.turnIdx)
-        throw new Error("Unknown game");
-    if (metadata.playerId == game.currentplayerturn)
-        throw new Error("The main player tried to choose a card");
+    const game = await GameController.getGameForSlackChannel(payload.channel.id);
+    if (game == undefined || game.currentturnidx != turnIdx)
+        throw new Error("Unknown game or this button is from another turn");
     
-    const player = await PlayerController.getPlayerWithId(metadata.playerId);
-    if (player.chosen_gif_id != undefined)
-        throw new Error("Already chosen a GIF");
+    const player = await PlayerController.getPlayerWithSlackId(payload.user.id);
+    if (player == undefined) {
+        const message = getJoinGameReponse(game.id);
+        respond({ response_type: "ephemeral", text: message.text, blocks: message.blocks });
+        return;
+    }
+    if (player.id == game.currentplayerturn || player.chosen_gif_id != undefined) {
+        respond({ response_type: "ephemeral", text: "You've already chosen a GIF this turn!" });
+        return;
+    }
     
-    const cards = await GifController.getPlayerCards(metadata.gameId, metadata.playerId);
+    const cards = await GifController.getPlayerCards(game.id, player.id);
     const mainplayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
 
-    const modal = getOtherPlayerChooseDialogue(cards, game.currentkeyword, mainplayer.slack_user_id, game.id, metadata.playerId, game.currentturnidx, payload.channel.id);
+    const modal = getOtherPlayerChooseDialogue(cards, game.currentkeyword, mainplayer.slack_user_id, game.id, player.id, game.currentturnidx, payload.channel.id);
     await Slack.showModal(payload.trigger_id, modal);
 
     // TODO delete message if modal is cancelled
@@ -370,14 +364,4 @@ export async function handleOtherPlayerDialogueSubmit(payload: Slack.ViewSubmiss
     await TurnManager.otherPlayerChoose(game.id, metadata.playerId, chosenCardId);
 
     return undefined;
-}
-
-export async function promptOtherPlayersTurns(players: Player[], mainPlayerSlackId: string, keyword: string, game: Game, turnIdx: number) {
-    const sends = [];
-    for (const player of players) {
-        const message = getOhterPlayerChoosePromptMessage(keyword, mainPlayerSlackId, game.id, player.id, turnIdx);
-        sends.push(Slack.postEphemeralMessage(game.slackchannelid, player.slack_user_id, message));
-    }
-    
-    return Promise.all(sends);
 }

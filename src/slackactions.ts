@@ -39,7 +39,7 @@ const createGameResponse: Slack.SlashResponse = {
 }
 
 const JOIN_GAME_ACTION_CALLBACK = "join_game_callback";
-function getJoinGameReponse(gameId: number): Slack.SlashResponse {
+export function getJoinGameReponse(gameId: number): Slack.SlashResponse {
     return {
         response_type: "ephemeral",
         text: "Do you want to join this game?",
@@ -204,7 +204,7 @@ async function handleNoQuerySlash(game: Game, slackId: string): Promise<Slack.Sl
             if (thisPlayer.chosen_gif_id == undefined) {
                 //prompt other player choose card
                 const mainPlayer = players.find(p => p.id == game.currentplayerturn);
-                const message = PlayerChoose.getOhterPlayerChoosePromptMessage(game.currentkeyword, mainPlayer.slack_user_id, game.id, thisPlayer.id, game.currentturnidx);
+                const message = TurnManager.getMainPlayerChoseMessage(mainPlayer.slack_user_id, game.currentkeyword, game.currentturnidx);
                 return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
             }
             else if (thisPlayer.voted_gif_id == undefined) {
@@ -285,6 +285,7 @@ export function init(): void {
     Slack.addActionHandler({ actionId: TurnManager.NEXT_TURN_CALLBACK }, handleStartNextTurnAction);
     Slack.addActionHandler({ actionId: PlayerInvite.ACCEPT_INVITE_CALLBACK }, handleJoinGameAction);
     Slack.addActionHandler({ actionId: PlayerChoose.START_MAIN_PLAYER_CHOOSE_ACTION_ID }, PlayerChoose.handleStartMainPlayerChoose);
+    Slack.addActionHandler({ actionId: PlayerChoose.MAIN_PLAYER_PASS_ACTION_ID }, PlayerChoose.handleMainPlayerPass);
     Slack.addActionHandler({ actionId: PlayerChoose.START_OTHER_PLAYER_CHOOSE_ACTION_ID }, PlayerChoose.handleStartOtherPlayerChoose);
     Slack.addActionHandler({ actionId: PlayerVotes.PLAYER_VOTE_ACTION_ID }, PlayerVotes.handlePlayerVote);
     

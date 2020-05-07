@@ -150,6 +150,10 @@ export async function handleOpenPlayerVoteDialogue(payload: Slack.ActionPayload,
     const game = await GameController.getGameForSlackChannel(payload.channel.id);
     if (game == undefined || game.currentturnidx != metadata.turnIdx)
         throw new Error("Unknown game or this button is from another turn");
+    if ( !game.isreadytovote)
+        throw new Error("Somehow you're voting too early");
+    if (game.isvotingcomplete)
+        throw new Error("Voting already complete, you were too slow :-(");
     
     const allPlayers = await PlayerController.getPlayersForGame(game.id);
     const player = await allPlayers.find(p => p.id == metadata.playerId);
@@ -183,6 +187,10 @@ export async function handlePlayerVote(payload: Slack.ViewSubmissionPayload): Pr
     const game = await GameController.getGameForId(voteMetadata.gameId);
     if (game == undefined|| game.currentturnidx != voteMetadata.turnIdx)
         throw new Error("Unknown game");
+    if ( !game.isreadytovote)
+        throw new Error("Somehow you're voting too early");
+    if (game.isvotingcomplete)
+        throw new Error("Voting already complete, you were too slow :-(");
     if (voteMetadata.playerId == game.currentplayerturn)
         throw new Error("The main player but tried to vote");
     

@@ -171,6 +171,10 @@ export async function handleRemindOtherPlayerChoose(payload: Slack.ActionPayload
         respond({ response_type: "ephemeral", text: "Main player still hasn't chosen" });
         return;
     }
+    if (game.isvotingcomplete) {
+        respond({ response_type: "ephemeral", text: "Voting is already complete" })
+        return;
+    }
 
     const player = await PlayerController.getPlayerWithId(playerToRemind);
     if (game.isreadytovote) {
@@ -202,6 +206,10 @@ export async function handleSkipOtherPlayersChooseAction(payload: Slack.ActionPa
     }
     if (game.currentkeyword == undefined) {
         respond({ response_type: "ephemeral", text: "Main player still hasn't chosen" });
+        return;
+    }
+    if (game.isvotingcomplete) {
+        respond({ response_type: "ephemeral", text: "Voting is already complete" })
         return;
     }
 
@@ -272,7 +280,7 @@ async function handleNoQuerySlash(game: Game, slackId: string): Promise<Slack.Sl
                 return;
             }
         }
-        else {
+        else if ( !game.isvotingcomplete ) {
             // we're voting
             if (thisPlayer.id != game.currentplayerturn && thisPlayer.voted_gif_id == undefined) {
                 // prompt other player vote
@@ -285,6 +293,9 @@ async function handleNoQuerySlash(game: Game, slackId: string): Promise<Slack.Sl
                 await TurnManager.postNewVoteSummaryMessage(game);
                 return;
             }
+        }
+        else {
+            return TurnManager.getNextTurnPrompt(game.currentturnidx);
         }
     }
     else {

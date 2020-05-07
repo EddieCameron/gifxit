@@ -7,6 +7,7 @@ export default interface Game {
     currentkeyword: string;
 
     isreadytovote: boolean;
+    isvotingcomplete: boolean;
 
     lastchosesummarymessage: string;
     lastvotesummarymessage: string;

@@ -71,12 +71,13 @@ export async function startNextTurn(gameId: number) {
     // reset keyword
     game.currentkeyword = undefined;
     game.isreadytovote = false;
+    game.isvotingcomplete = false;
 
     games[game.id] = game;
 
     await DB.queryNoReturn(
-        "UPDATE games SET currentplayerturn = $1, currentturnidx = $2, currentkeyword = $3, isreadytovote = $4 WHERE id=$5",
-        nextPlayerIdx, game.currentturnidx, game.currentkeyword, game.isreadytovote, game.id);
+        "UPDATE games SET currentplayerturn = $1, currentturnidx = $2, currentkeyword = $3, isreadytovote = $4, isvotingcomplete = $5 WHERE id=$5",
+        nextPlayerIdx, game.currentturnidx, game.currentkeyword, game.isreadytovote, game.isvotingcomplete, game.id);
 
     return game;
 }
@@ -124,5 +125,16 @@ export async function setVoteSummaryMessage(gameId: number, messagets: string) {
     await DB.queryNoReturn(
         "UPDATE games SET lastvotesummarymessage = $1 WHERE id=$2",
         messagets, game.id);
+    return game;
+}
+
+export async function completeVote(gameId: number) {
+    const game = await getGameForId(gameId);
+    
+    game.isvotingcomplete = true;
+    games[game.id] = game;
+    await DB.queryNoReturn(
+        "UPDATE games SET isvotingcomplete = $1 WHERE id=$2",
+        true, game.id);
     return game;
 }

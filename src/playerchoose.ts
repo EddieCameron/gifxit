@@ -287,8 +287,9 @@ export async function handleStartMainPlayerChoose(payload: Slack.ActionPayload, 
     const metadata = JSON.parse(payload.actions[0].value) as DialogueMetadata;
 
     const game = await GameController.getGameForId(metadata.gameId);
-    if (game == undefined|| game.currentturnidx != metadata.turnIdx||game.currentkeyword != undefined)
-        throw new Error("Unknown game");
+    if (game == undefined || game.currentturnidx != metadata.turnIdx || game.currentkeyword != undefined) {
+        respond({ replace_original: true, text: "It's not your turn to choose a message" });
+    }
     if (metadata.playerId != game.currentplayerturn)
         throw new Error("Not the main player but tried to choose a card");
     
@@ -322,6 +323,8 @@ export async function handleMainPlayerDialogueSubmit(payload: Slack.ViewSubmissi
     const game = await GameController.getGameForId(metadata.gameId);
     if (game == undefined|| game.currentturnidx != metadata.turnIdx)
         throw new Error("Unknown game");
+    if (game.currentkeyword!=undefined)
+        throw new Error("Already chosen a card");
     if (metadata.playerId != game.currentplayerturn)
         throw new Error("Not the main player but tried to choose a card");
     
@@ -353,9 +356,9 @@ export async function handleStartOtherPlayerChoose(payload: Slack.ActionPayload,
     console.log("Other player is choosing..." + turnIdx);
 
     const game = await GameController.getGameForSlackChannel(payload.channel.id);
-    if (game == undefined || game.currentturnidx != turnIdx)
+    if (game == undefined || game.currentturnidx != turnIdx )
         throw new Error("Unknown game or this button is from another turn");
-    if (game.isreadytovote) {
+    if (game.isreadytovote||game.isvotingcomplete) {
         respond({ response_type: "ephemeral", replace_original: false, text: "We've moved on to voting already. too slow" });
         return;
     }
@@ -388,6 +391,9 @@ export async function handleOtherPlayerDialogueSubmit(payload: Slack.ViewSubmiss
     const game = await GameController.getGameForId(metadata.gameId);
     if (game == undefined|| game.currentturnidx != metadata.turnIdx)
         throw new Error("Unknown game");
+    if (game.isreadytovote||game.isvotingcomplete) {
+        throw new Error("We've moved on to voting already. too slow" );
+    }
     console.log("checking player turn");
     if (metadata.playerId == game.currentplayerturn)
         throw new Error("The main player but tried to choose a card");

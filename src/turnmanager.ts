@@ -379,7 +379,7 @@ function getScoreSummaryMessage(players: Player[]) {
 }
 
 export const NEXT_TURN_CALLBACK = "start_next_turn";
-function getNextTurnPrompt(currentTurnIdx: number): Slack.SlashResponse {
+export function getNextTurnPrompt(currentTurnIdx: number): Slack.SlashResponse {
     return {
         response_type: "ephemeral",
         text: "Are you ready to start the next turn?",
@@ -435,6 +435,7 @@ async function showScoreSummary(game: Game) {
 
 export async function scoreVotes(game: Game) {
     const gifVotes = await PlayerController.getAllVotes(game.id);
+    await GameController.completeVote(game.id);
 
     const playerPoints: { [playerId: number]: number } = {}
     for (const gifVote of gifVotes) {

@@ -199,12 +199,13 @@ export async function handleSkipOtherPlayersChooseAction(payload: Slack.ActionPa
         respond({ response_type: "ephemeral", text: "Main player still hasn't chosen" });
         return;
     }
-    if (game.isreadytovote) {
-        respond({ response_type: "ephemeral", text: "Already voting" });
-        return;
-    }
 
-    await TurnManager.startVoting(game);
+    if (game.isreadytovote) {
+        await TurnManager.scoreVotes(game);
+    }
+    else {
+        await TurnManager.startVoting(game);
+    }
 }
 
 export async function handleStartNextTurnAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
@@ -275,7 +276,9 @@ async function handleNoQuerySlash(game: Game, slackId: string): Promise<Slack.Sl
                 return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
             }
             else {
-                // TODO remind other players to vote
+                // just print summary
+                const message = await TurnManager.getOtherPlayersVoteSummary(game);
+                return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
             }
         }
     }
@@ -354,7 +357,7 @@ export function init(): void {
     Slack.addActionHandler({ actionId: PlayerChoose.START_OTHER_PLAYER_CHOOSE_ACTION_ID }, PlayerChoose.handleStartOtherPlayerChoose);
     Slack.addActionHandler({ actionId: TurnManager.REMIND_CHOOSE_ACTION }, handleRemindOtherPlayerChoose);
     Slack.addActionHandler({ actionId: PlayerVotes.OPEN_VOTE_DIALOGUE_CALLBACK_ID }, PlayerVotes.handleOpenPlayerVoteDialogue);
-    Slack.addActionHandler({ actionId: TurnManager.SKIP_CHOOSE_ACTION }, handleSkipOtherPlayersChooseAction );
+    Slack.addActionHandler({ actionId: TurnManager.SKIP_ACTION }, handleSkipOtherPlayersChooseAction );
     
     Slack.addViewSubmissionHandler(PlayerChoose.CHOOSE_MAIN_PLAYER_MODAL_CALLBACK_ID, PlayerChoose.handleMainPlayerDialogueSubmit );
     Slack.addViewSubmissionHandler(PlayerChoose.CHOOSE_OTHER_PLAYER_MODAL_CALLBACK_ID, PlayerChoose.handleOtherPlayerDialogueSubmit );

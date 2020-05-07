@@ -65,6 +65,9 @@ export async function getAllVotes(gameId: number) {
 
     const gifVotes: GifVote[] = []
     for (const player of players) {
+        if (player.chosen_gif_id == undefined)
+            continue;
+        
         const gif = await GifController.getCard(player.chosen_gif_id);
         const votes = players.filter(p => p.voted_gif_id != undefined && p.voted_gif_id == player.chosen_gif_id);
         gifVotes.push({

@@ -26,11 +26,15 @@ export async function queryNoReturn(query: string, ...params: any[]) {
 export async function transaction(queries: QueryConfig[]) {
   const queryReturns = []
   try {
+    console.log( "Transaction begin...")
     await pool.query('BEGIN')
     for (const q of queries) {
+      console.log("Querying: " + q.text );
       queryReturns.push(await pool.query(q));
     }
     await pool.query('COMMIT')
+    console.log( "...transaction complete")
+
   } catch (e) {
     await pool.query('ROLLBACK')
     throw e

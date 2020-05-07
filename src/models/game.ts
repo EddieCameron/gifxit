@@ -5,4 +5,6 @@ export default interface Game {
     currentplayerturn: number;
     currentturnidx: number;
     currentkeyword: string;
+
+    isreadytovote: boolean;
 }

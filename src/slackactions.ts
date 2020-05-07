@@ -147,17 +147,64 @@ export async function handleStartGameAction(payload: Slack.ActionPayload, respon
 }
 
 export async function handleInvitePlayerAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
-    console.log(JSON.stringify(payload));
     const invitedPlayer = payload.actions[0].selected_user;
     console.log("Inviting player " + invitedPlayer);
     
     const game = await GameController.getGameForSlackChannel(payload.channel.id)
-    if (game == undefined || game.currentturnidx > 0) {
+    if (game == undefined) {
         respond({ replace_original: true, text: "This game doesn't exit or has already started" });
         return;
     }
 
     await PlayerInvite.invitePlayer(game, invitedPlayer, payload.user.id);
+}
+
+export async function handleRemindOtherPlayerChoose(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
+    const playerToRemind = +payload.actions[0].value;
+
+    const game = await GameController.getGameForSlackChannel(payload.channel.id)
+    if (game == undefined ) {
+        respond({ replace_original: false, text: "This game doesn't exit or this has already been skipped" });
+        return;
+    }
+    if (game.currentkeyword == undefined) {
+        respond({ response_type: "ephemeral", text: "Main player still hasn't chosen" });
+        return;
+    }
+
+    if (game.isreadytovote) {
+        // TODO remind to vote
+        return
+    }
+    else {
+        const player = await PlayerController.getPlayerWithId(playerToRemind);
+        if (player.chosen_gif_id != undefined) {
+            respond({ replace_original: false, text: "This player has already chosen" });
+            return
+        }
+        await PlayerChoose.promptOtherPlayerChoose(player.slack_user_id, game);
+    }
+}
+
+export async function handleSkipOtherPlayersChooseAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
+    console.log("Skipping the other players");
+    const turnIdx = +payload.actions[0].value;
+    
+    const game = await GameController.getGameForSlackChannel(payload.channel.id)
+    if (game == undefined || game.currentturnidx != turnIdx) {
+        respond({ replace_original: false, text: "This game doesn't exit or this has already been skipped" });
+        return;
+    }
+    if (game.currentkeyword == undefined) {
+        respond({ response_type: "ephemeral", text: "Main player still hasn't chosen" });
+        return;
+    }
+    if (game.isreadytovote) {
+        respond({ response_type: "ephemeral", text: "Already voting" });
+        return;
+    }
+
+    await TurnManager.startVoting(game);
 }
 
 export async function handleStartNextTurnAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
@@ -191,26 +238,44 @@ async function handleNoQuerySlash(game: Game, slackId: string): Promise<Slack.Sl
     if (thisPlayer != undefined) {
         // we're in this game
         if (game.currentturnidx == 0) {
+            // game hasn't started yet
             return unStartedGameActionsPrompt;
         }
-        else if (game.currentplayerturn == thisPlayer.id ) {
-            if (game.currentkeyword == undefined) {
+        else if (game.currentkeyword == undefined) {
+            // main player hasn't chosen yet
+            if (game.currentplayerturn == thisPlayer.id) {
                 // prompt main player turn
                 const message = PlayerChoose.getMainPlayerChoosePromptMessage(game.id, thisPlayer.id, game.currentturnidx);
                 return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
             }
+            else {
+                // TODO remind main player or skip option?
+            }
         }
-        else {
+        else if (!game.isreadytovote) {
+            // other players need to choose
             if (thisPlayer.chosen_gif_id == undefined) {
                 //prompt other player choose card
                 const mainPlayer = players.find(p => p.id == game.currentplayerturn);
                 const message = TurnManager.getMainPlayerChoseMessage(mainPlayer.slack_user_id, game.currentkeyword, game.currentturnidx);
                 return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
             }
-            else if (thisPlayer.voted_gif_id == undefined) {
-                // prompt other player vote
-                const message = await PlayerVotes.getPlayerVotePrompt(game, thisPlayer);
+            else {
+                // just print summary
+                const message = await TurnManager.getOtherPlayersChooseSummary(game);
                 return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
+            }
+        }
+        else {
+            // we're voting
+            if (thisPlayer.id != game.currentplayerturn && thisPlayer.voted_gif_id == undefined) {
+                // prompt other player vote
+                const mainPlayer = players.find(p => p.id == game.currentplayerturn);
+                const message = PlayerVotes.getPlayerVotePrompt(game, mainPlayer, thisPlayer);
+                return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
+            }
+            else {
+                // TODO remind other players to vote
             }
         }
     }
@@ -287,8 +352,11 @@ export function init(): void {
     Slack.addActionHandler({ actionId: PlayerChoose.START_MAIN_PLAYER_CHOOSE_ACTION_ID }, PlayerChoose.handleStartMainPlayerChoose);
     Slack.addActionHandler({ actionId: PlayerChoose.MAIN_PLAYER_PASS_ACTION_ID }, PlayerChoose.handleMainPlayerPass);
     Slack.addActionHandler({ actionId: PlayerChoose.START_OTHER_PLAYER_CHOOSE_ACTION_ID }, PlayerChoose.handleStartOtherPlayerChoose);
-    Slack.addActionHandler({ actionId: PlayerVotes.PLAYER_VOTE_ACTION_ID }, PlayerVotes.handlePlayerVote);
+    Slack.addActionHandler({ actionId: TurnManager.REMIND_CHOOSE_ACTION }, handleRemindOtherPlayerChoose);
+    Slack.addActionHandler({ actionId: PlayerVotes.OPEN_VOTE_DIALOGUE_CALLBACK_ID }, PlayerVotes.handleOpenPlayerVoteDialogue);
+    Slack.addActionHandler({ actionId: TurnManager.SKIP_CHOOSE_ACTION }, handleSkipOtherPlayersChooseAction );
     
     Slack.addViewSubmissionHandler(PlayerChoose.CHOOSE_MAIN_PLAYER_MODAL_CALLBACK_ID, PlayerChoose.handleMainPlayerDialogueSubmit );
     Slack.addViewSubmissionHandler(PlayerChoose.CHOOSE_OTHER_PLAYER_MODAL_CALLBACK_ID, PlayerChoose.handleOtherPlayerDialogueSubmit );
+    Slack.addViewSubmissionHandler(PlayerVotes.PLAYER_VOTE_ACTION_ID, PlayerVotes.handlePlayerVote);
 }

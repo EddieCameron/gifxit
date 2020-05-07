@@ -70,12 +70,13 @@ export async function startNextTurn(gameId: number) {
     
     // reset keyword
     game.currentkeyword = undefined;
+    game.isreadytovote = false;
 
     games[game.id] = game;
 
     await DB.queryNoReturn(
-        "UPDATE games SET currentplayerturn = $1, currentturnidx = $2, currentkeyword = $3 WHERE id=$4",
-        nextPlayerIdx, game.currentturnidx, game.currentkeyword, game.id);
+        "UPDATE games SET currentplayerturn = $1, currentturnidx = $2, currentkeyword = $3, isreadytovote = $4 WHERE id=$5",
+        nextPlayerIdx, game.currentturnidx, game.currentkeyword, game.isreadytovote, game.id);
 
     return game;
 }
@@ -90,5 +91,16 @@ export async function setKeyword(gameId: number, keyword: string) {
     await DB.queryNoReturn(
         "UPDATE games SET currentkeyword = $1 WHERE id=$2",
         keyword, game.id);
+    return game;
+}
+
+export async function startVote(gameId: number) {
+    const game = await getGameForId(gameId);
+    
+    game.isreadytovote = true;
+    games[game.id] = game;
+    await DB.queryNoReturn(
+        "UPDATE games SET isreadytovote = $1 WHERE id=$2",
+        true, game.id);
     return game;
 }

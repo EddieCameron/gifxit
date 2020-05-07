@@ -5,6 +5,12 @@ import Player from "./models/player";
 import Game from "./models/game";
 import { dealCardsToPlayer } from "./gifcontroller";
 
+export interface DialogueMetadata {
+    gameId: number;
+    playerId: number;
+    turnIdx: number;
+}
+
 function getGameInfoMessage(players: Player[]): Slack.Message {
     let playerText = "";
     for (const player of players) {

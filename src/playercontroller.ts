@@ -22,7 +22,7 @@ export async function createPlayer(slack_id: string, game_id: number) {
 }
 
 // returns players that have still not chosen a gif
-export async function setChosenGif(playerId: number, gifId: number) {
+export async function setChosenGif(playerId: number, gifId: number, gameId: number) {
     const results = await DB.transaction([
         {
             // set as chosen
@@ -36,14 +36,15 @@ export async function setChosenGif(playerId: number, gifId: number) {
         },
         {
             // get players that haven't yet chosen
-            text: "SELECT * FROM PLAYERS WHERE chosen_gif_id IS NULL"
+            text: "SELECT * FROM PLAYERS WHERE game_id =$1 AND chosen_gif_id IS NULL",
+            values: [gameId]
         }
     ]);
     return results[2].rows.map(p => p as Player);
 }
 
 // returns players that have still not chosen a gif
-export async function voteForGif(playerId: number, gifId: number) {
+export async function voteForGif(playerId: number, gifId: number, gameId: number) {
     const results = await DB.transaction([
         {
             // set as voted
@@ -52,7 +53,8 @@ export async function voteForGif(playerId: number, gifId: number) {
         },
         {
             // get players that haven't yet voted
-            text: "SELECT * FROM PLAYERS WHERE voted_gif_id IS NULL"
+            text: "SELECT * FROM PLAYERS WHERE game_id=$1 AND voted_gif_id IS NULL",
+            values: [gameId]
         }
     ]);
     return results[1].rows.map(p => p as Player);

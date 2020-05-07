@@ -487,7 +487,7 @@ export async function playerVote(gameId: number, playerId: number, gifId: number
     console.log(chosenPlayer.id);
 
     let remainingPlayers = await PlayerController.voteForGif(playerId, gifId, gameId);
-    remainingPlayers = remainingPlayers.filter(p => p.id != game.currentplayerturn);
+    remainingPlayers = remainingPlayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id != undefined);
 
     console.log("Player " + chosenPlayer.id + " voted for " + gifId);
 

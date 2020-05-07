@@ -172,9 +172,14 @@ export async function handleRemindOtherPlayerChoose(payload: Slack.ActionPayload
         return;
     }
 
+    const player = await PlayerController.getPlayerWithId(playerToRemind);
     if (game.isreadytovote) {
-        // TODO remind to vote
-        return
+        if (player.voted_gif_id != undefined) {
+            respond({ replace_original: false, text: "This player has already voted" });
+            return
+        }
+        const mainPlayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
+        await PlayerVotes.promptPlayerVote(game, mainPlayer, player);
     }
     else {
         const player = await PlayerController.getPlayerWithId(playerToRemind);
@@ -262,9 +267,9 @@ async function handleNoQuerySlash(game: Game, slackId: string): Promise<Slack.Sl
                 return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
             }
             else {
-                // just print summary
-                const message = await TurnManager.getOtherPlayersChooseSummary(game);
-                return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
+                // just reprint summary
+                await TurnManager.postNewChooseSummaryMessage(game);
+                return;
             }
         }
         else {
@@ -277,8 +282,8 @@ async function handleNoQuerySlash(game: Game, slackId: string): Promise<Slack.Sl
             }
             else {
                 // just print summary
-                const message = await TurnManager.getOtherPlayersVoteSummary(game);
-                return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
+                await TurnManager.postNewVoteSummaryMessage(game);
+                return;
             }
         }
     }

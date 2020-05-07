@@ -131,11 +131,15 @@ export function getPlayerVotePrompt(game: Game, mainPlayer: Player, player: Play
     return getPromptStartVoteMessage(game, player.id, mainPlayer.slack_user_id, game.currentkeyword);
 }
 
+export async function promptPlayerVote(game: Game, mainPlayer: Player, player: Player) {
+    const message = getPlayerVotePrompt(game, mainPlayer, player);
+    await Slack.postEphemeralMessage(game.slackchannelid, player.slack_user_id, message);
+}
+
 export async function promptPlayerVotes(game: Game, mainPlayer: Player, players: Player[] ) {
     // for reach player show them a shuffled list of gifs
     for (const player of players) {
-        const message = getPlayerVotePrompt(game, mainPlayer, player);
-        await Slack.postEphemeralMessage(game.slackchannelid, player.slack_user_id, message);
+        await promptPlayerVote(game, mainPlayer, player);
     }
 }
 

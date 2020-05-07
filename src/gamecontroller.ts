@@ -104,3 +104,25 @@ export async function startVote(gameId: number) {
         true, game.id);
     return game;
 }
+
+export async function setChooseSummaryMessage(gameId: number, messagets: string) {
+    const game = await getGameForId(gameId);
+    
+    game.lastchosesummarymessage = messagets;
+    games[game.id] = game;
+    await DB.queryNoReturn(
+        "UPDATE games SET lastchosesummarymessage = $1 WHERE id=$2",
+        messagets, game.id);
+    return game;
+}
+
+export async function setVoteSummaryMessage(gameId: number, messagets: string) {
+    const game = await getGameForId(gameId);
+    
+    game.lastvotesummarymessage = messagets;
+    games[game.id] = game;
+    await DB.queryNoReturn(
+        "UPDATE games SET lastvotesummarymessage = $1 WHERE id=$2",
+        messagets, game.id);
+    return game;
+}

@@ -342,6 +342,12 @@ export async function promptOtherPlayerChoose(slackId: string, game: Game) {
     return Slack.postEphemeralMessage( game.slackchannelid, slackId, getOtherPlayerChoosePrompt( game.currentturnidx ))
 }
 
+export async function promptPlayerChooses(game: Game, playerSlackIds: string[] ) {
+    for (const player of playerSlackIds) {
+        await promptOtherPlayerChoose(player, game);
+    }
+}
+
 export async function handleStartOtherPlayerChoose(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
     const turnIdx = +payload.actions[0].value;
     console.log("Other player is choosing..." + turnIdx);
@@ -349,6 +355,10 @@ export async function handleStartOtherPlayerChoose(payload: Slack.ActionPayload,
     const game = await GameController.getGameForSlackChannel(payload.channel.id);
     if (game == undefined || game.currentturnidx != turnIdx)
         throw new Error("Unknown game or this button is from another turn");
+    if (game.isreadytovote) {
+        respond({ response_type: "ephemeral", replace_original: false, text: "We've moved on to voting already. too slow" });
+        return;
+    }
     
     const player = await PlayerController.getPlayerWithSlackId(payload.user.id);
     if (player == undefined) {

@@ -38,6 +38,22 @@ export function getEmojiForNumber(num: number) {
     }
 }
 
+export function getTextList(listItems: string[]) {
+    let message = "";
+    for (let index = 0; index < listItems.length; index++) {
+        const item = listItems[index];
+
+        if (index > 0) {
+            if (index >= listItems.length - 1)
+                message += " and ";
+            else
+                message += ", ";
+        }
+        message += item;
+    }
+    return message;
+}
+
 export function getSmallCardSection(card: Gif, handNumber: number) {
     return {
         "type": "section",
@@ -171,48 +187,57 @@ function getSkipVoteBlock( gameTurnIdx: number ) {
     }
 }
 
-function getPlayerChooseSummaryMessage( turnIdx: number, remainingPlayers: Player[]) {
+function getPlayerChooseSummaryMessage( turnIdx: number, mainPlayerSlackId: string, keyword: string, chosenPlayers: Player[], remainingPlayers: Player[]) {
     const message: Slack.Message = {
-        text: `Waiting on players to choose their GIFs`,
+        text: 'Choose your GIFs',
         blocks: [
             {
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: `Still waiting on some players to choose their GIFs`
+                    text: `🛎 <@${mainPlayerSlackId}> has chosen a GIF! 🛎`
                 }
+            },
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: `Their message is *${keyword}*`
+                }
+            },
+            {
+                type: "divider"
             },
         ]
     }
-    message.blocks = message.blocks.concat(getRemainingPlayersBlocks(remainingPlayers));
+
+    if (chosenPlayers.length > 0) {
+        const chosenMessage = `${getTextList(chosenPlayers.map(p => `<@${p.slack_user_id}>`))} ${chosenPlayers.length == 1 ? "has" : "have"} picked a GIF`
+        message.blocks.push({
+            type: "section",
+            text: {
+                type: "mrkdwn",
+                text: chosenMessage
+            }
+        });
+    }
+
+    if (remainingPlayers.length > 0) {
+        message.blocks.push(
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: `Now these players need to pick a GIF that could also match that message`
+                }
+            });
+
+        message.blocks = message.blocks.concat(getRemainingPlayersBlocks(remainingPlayers));
+        message.blocks.push({ type: "divider" });
+    }
+    
     message.blocks.push(getSkipChooseBlock(turnIdx));
 
-    return message;
-}
-
-function getOtherPlayerChoseMessage(chosenPlayerSlackId: string, remainingPlayers: Player[], gameTurnIdx: number): Slack.Message {
-    const message = {
-        text: `<@${chosenPlayerSlackId}> has picked their GIF`,
-        blocks: [
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: `<@${chosenPlayerSlackId}> has picked their GIF`
-                }
-            },
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: `Still waiting on`
-                },
-            }
-        ]
-    }
-
-    message.blocks = message.blocks.concat(getRemainingPlayersBlocks(remainingPlayers));
-    message.blocks.push(getSkipChooseBlock(gameTurnIdx));
     return message;
 }
 
@@ -235,66 +260,44 @@ function getPlayersReadyToVoteMessage(cards: Gif[], keyword: string): Slack.Mess
         message.blocks.push(getSmallCardSection(card, cardNumber));
         cardNumber++;
     }
-
-    message.blocks.push({
-        type: "section",
-        text: {
-            type: "mrkdwn",
-            text: `Sending voting cards out...`
-        }
-    })
     return message
 }
 
-function getVoteSummaryMessage( turnIdx: number, remainingPlayers: Player[]) {
+function getVoteSummaryMessage( turnIdx: number, mainplayerslackid: string, votedPlayers: Player[], remainingPlayers: Player[]) {
     const message: Slack.Message = {
         text: `Waiting on players to vote`,
         blocks: [
+        ]
+    }
+
+    if (votedPlayers.length > 0) {
+        const votedmessage = `🗳 ${getTextList(votedPlayers.map(p => `<@${p.slack_user_id}>`))} ${votedPlayers.length == 1 ? "has" : "have"} voted 🗳`
+        message.blocks.push({
+            type: "section",
+            text: {
+                type: "mrkdwn",
+                text: votedmessage
+            }
+        });
+        message.blocks.push({ type: "divider" });
+    }
+
+    if (remainingPlayers.length > 0) {
+        message.blocks.push(
             {
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: `Still waiting on some players to vote`
+                    text: `Now these players need to vote for which GIF they think was chosen by <@${mainplayerslackid}>`
                 }
-            },
-        ]
+            });
+
+        message.blocks = message.blocks.concat(getRemainingPlayersBlocks(remainingPlayers));
+        message.blocks.push({ type: "divider" });
     }
-    message.blocks = message.blocks.concat(getRemainingPlayersBlocks(remainingPlayers));
+
     message.blocks.push(getSkipVoteBlock(turnIdx));
 
-    return message;
-}
-
-function getPlayerVotedMessage(votedPlayerSlackId: string, remainingPlayers: Player[], gameTurnIdx: number): Slack.Message {
-    const remainingPlayerFields: MrkdwnElement[] = remainingPlayers.map(p => {
-        return {
-            type: "mrkdwn",
-            text: `<@${p.slack_user_id}>`
-        }
-    });
-    const message: Slack.Message = {
-        text: `<@${votedPlayerSlackId}> has voted`,
-        blocks: [
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: `<@${votedPlayerSlackId}> has voted`
-                }
-            },
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: `Still waiting on`
-                },
-                fields: remainingPlayerFields
-            }
-        ]
-    }
-
-    message.blocks = message.blocks.concat( getRemainingPlayersBlocks(remainingPlayers) );
-    message.blocks.push(getSkipVoteBlock(gameTurnIdx));
     return message;
 }
 
@@ -476,14 +479,66 @@ export async function scoreVotes(game: Game) {
     await Slack.postMessage( game.slackchannelid, getNextTurnPrompt(game.currentturnidx ) );
 }
 
+export async function postNewChooseSummaryMessage(game: Game) {
+    const allplayers = await PlayerController.getPlayersForGame(game.id);
+    const mainplayer = allplayers.find(p => p.id == game.currentplayerturn);
+    const pickedplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id != undefined);
+    const remainingplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id == undefined);
+
+    const message = getPlayerChooseSummaryMessage(game.currentturnidx, mainplayer.slack_user_id, game.currentkeyword, pickedplayers, remainingplayers);
+    const post = await Slack.postMessage(game.slackchannelid, message);
+    GameController.setChooseSummaryMessage(game.id, post.ts);
+}
+
+export async function updateChooseSummaryMessage(game: Game) {
+    const allplayers = await PlayerController.getPlayersForGame(game.id);
+    const mainplayer = allplayers.find(p => p.id == game.currentplayerturn);
+    const pickedplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id != undefined);
+    const remainingplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id == undefined);
+
+    const message = getPlayerChooseSummaryMessage(game.currentturnidx, mainplayer.slack_user_id, game.currentkeyword, pickedplayers, remainingplayers);
+    const post = await Slack.updateMessage(game.slackchannelid, game.lastchosesummarymessage, message);
+    if (post.error) {
+        // couldn't update, post as new
+        const post = await Slack.postMessage(game.slackchannelid, message);
+        GameController.setChooseSummaryMessage(game.id, post.ts);
+    }
+}
+
 export async function mainPlayerChoose(gameid: number, playerId: number, cardId: number, keyword: string) {
-    await PlayerController.setChosenGif(playerId, cardId, gameid);
+    const playersToChoose = await PlayerController.setChosenGif(playerId, cardId, gameid);
     const game = await GameController.setKeyword(gameid, keyword);
-    const player = await PlayerController.getPlayerWithId(playerId);
 
     // TODO confirmation or something
-    const notifyEveryoneMessage = getMainPlayerChoseMessage(player.slack_user_id, keyword, game.currentturnidx);
-    return await Slack.postMessage(game.slackchannelid, notifyEveryoneMessage);
+    await postNewChooseSummaryMessage(game);
+
+    await PlayerChoose.promptPlayerChooses(game, playersToChoose.map(p => p.slack_user_id));
+}
+
+export async function postNewVoteSummaryMessage(game: Game) {
+    const allplayers = await PlayerController.getPlayersForGame(game.id);
+    const mainplayer = allplayers.find(p => p.id == game.currentplayerturn);
+    const votedplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.voted_gif_id != undefined);
+    const remainingplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id != undefined && p.voted_gif_id == undefined);
+
+    const message = getVoteSummaryMessage(game.currentturnidx, mainplayer.slack_user_id, votedplayers, remainingplayers);
+    const post = await Slack.postMessage(game.slackchannelid, message);
+    GameController.setVoteSummaryMessage(game.id, post.ts);
+}
+
+export async function updateVoteSummaryMessage(game: Game) {
+    const allplayers = await PlayerController.getPlayersForGame(game.id);
+    const mainplayer = allplayers.find(p => p.id == game.currentplayerturn);
+    const votedplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.voted_gif_id != undefined);
+    const remainingplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id != undefined && p.voted_gif_id == undefined);
+
+    const message = getVoteSummaryMessage(game.currentturnidx, mainplayer.slack_user_id, votedplayers, remainingplayers);
+    const post = await Slack.updateMessage(game.slackchannelid, game.lastvotesummarymessage, message);
+    if (post.error) {
+        // couldn't update, post as new
+        const post = await Slack.postMessage(game.slackchannelid, message);
+        GameController.setVoteSummaryMessage(game.id, post.ts);
+    }
 }
 
 export async function startVoting(game: Game) {
@@ -494,6 +549,7 @@ export async function startVoting(game: Game) {
     await GameController.startVote(game.id);
 
     await Slack.postMessage(game.slackchannelid, getPlayersReadyToVoteMessage( chosenGifs, game.currentkeyword));
+    await postNewVoteSummaryMessage(game);
 
     const mainPlayer = allPlayers.find(p => p.id == game.currentplayerturn);
     const votingPlayers = chosenPlayers.filter(p => p.id != game.currentplayerturn);
@@ -501,33 +557,16 @@ export async function startVoting(game: Game) {
     
 }
 
-export async function getOtherPlayersChooseSummary( game: Game, ) {
-    // tell everyone that choice was made, show remainign players
-    const allplayers = await PlayerController.getPlayersForGame(game.id);
-    const playersToChoose = allplayers.filter(p => p.chosen_gif_id == undefined);
-    return getPlayerChooseSummaryMessage(game.currentturnidx, playersToChoose);
-}
-
 export async function otherPlayerChoose(gameid: number, playerId: number, cardId: number) {
     const game = await GameController.getGameForId(gameid);
-    const chosenPlayer = await PlayerController.getPlayerWithId(playerId);
     const remainingPlayers = await PlayerController.setChosenGif(playerId, cardId, gameid);
 
     if (remainingPlayers.length == 0) {
         await startVoting(game);
     }
     else {
-        // tell everyone that choice was made, show remainign players
-        const notifyChoiceMessage = getOtherPlayerChoseMessage(chosenPlayer.slack_user_id, remainingPlayers, game.currentturnidx);
-        await Slack.postMessage(game.slackchannelid, notifyChoiceMessage);
+        updateChooseSummaryMessage(game);
     }
-}
-
-export async function getOtherPlayersVoteSummary( game: Game ) {
-    // tell everyone that choice was made, show remainign players
-    const allplayers = await PlayerController.getPlayersForGame(game.id);
-    const playersToVote = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id != undefined && p.voted_gif_id == undefined);
-    return getVoteSummaryMessage(game.currentturnidx, playersToVote);
 }
 
 export async function playerVote(gameId: number, playerId: number, gifId: number) {
@@ -548,8 +587,7 @@ export async function playerVote(gameId: number, playerId: number, gifId: number
     }
     else {
         // tell everyone that choice was made, show remainign players
-        const notifyChoiceMessage = getPlayerVotedMessage(chosenPlayer.slack_user_id, remainingPlayers, game.currentturnidx);
-        await Slack.postMessage(game.slackchannelid, notifyChoiceMessage);
+        updateVoteSummaryMessage(game);
     }
 }
 

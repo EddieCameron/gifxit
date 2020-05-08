@@ -631,7 +631,7 @@ export async function mainPlayerChoose(gameid: number, playerId: number, cardId:
     // TODO confirmation or something
     await postNewChooseSummaryMessage(game);
 
-    return PlayerChoose.promptPlayerChooses(game, playersToChoose.map(p => p.slack_user_id));
+    //return PlayerChoose.promptPlayerChooses(game, playersToChoose.map(p => p.slack_user_id));
 }
 
 export async function startNextTurn( gameId: number ) {

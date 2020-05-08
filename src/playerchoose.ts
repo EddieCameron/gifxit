@@ -345,12 +345,6 @@ export async function promptOtherPlayerChoose(slackId: string, game: Game) {
     return Slack.postEphemeralMessage( game.slackchannelid, slackId, getOtherPlayerChoosePrompt( game.currentturnidx ))
 }
 
-export async function promptPlayerChooses(game: Game, playerSlackIds: string[] ) {
-    for (const player of playerSlackIds) {
-        await promptOtherPlayerChoose(player, game);
-    }
-}
-
 export async function handleStartOtherPlayerChoose(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
     const turnIdx = +payload.actions[0].value;
     console.log("Other player is choosing..." + turnIdx);

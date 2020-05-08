@@ -1,6 +1,7 @@
 export default interface Player {
     id: number;
     slack_user_id: string;
+    slack_name: string;
 
     game_id: number;
 

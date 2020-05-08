@@ -76,7 +76,7 @@ export async function startNextTurn(gameId: number) {
     games[game.id] = game;
 
     await DB.queryNoReturn(
-        "UPDATE games SET currentplayerturn = $1, currentturnidx = $2, currentkeyword = $3, isreadytovote = $4, isvotingcomplete = $5 WHERE id=$5",
+        "UPDATE games SET currentplayerturn = $1, currentturnidx = $2, currentkeyword = $3, isreadytovote = $4, isvotingcomplete = $5 WHERE id=$6",
         nextPlayerIdx, game.currentturnidx, game.currentkeyword, game.isreadytovote, game.isvotingcomplete, game.id);
 
     return game;

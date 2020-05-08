@@ -6,7 +6,6 @@ import * as GameController from "./gamecontroller"
 import * as GifController from "./gifcontroller"
 import * as PlayerController from "./playercontroller"
 import Game from "./models/game";
-import { getJoinGameReponse } from "./slackactions";
 import { DialogueMetadata } from "./gamemanager";
 
 export const START_MAIN_PLAYER_CHOOSE_ACTION_ID = "start_main_player_choose";
@@ -289,6 +288,7 @@ export async function handleStartMainPlayerChoose(payload: Slack.ActionPayload, 
     const game = await GameController.getGameForId(metadata.gameId);
     if (game == undefined || game.currentturnidx != metadata.turnIdx || game.currentkeyword != undefined) {
         respond({ replace_original: true, text: "It's not your turn to choose a message" });
+        return;
     }
     if (metadata.playerId != game.currentplayerturn)
         throw new Error("Not the main player but tried to choose a card");
@@ -363,10 +363,9 @@ export async function handleStartOtherPlayerChoose(payload: Slack.ActionPayload,
         return;
     }
     
-    const player = await PlayerController.getPlayerWithSlackId(payload.user.id);
+    const player = await PlayerController.getOrCreatePlayerWithSlackId(payload.user.id, game.id);
     if (player == undefined) {
-        const message = getJoinGameReponse(game.id);
-        respond({ response_type: "ephemeral", replace_original: false, text: message.text, blocks: message.blocks });
+        respond({ response_type: "ephemeral", replace_original: false, text: "You can't join this game" });
         return;
     }
     if (player.id == game.currentplayerturn || player.chosen_gif_id != undefined) {
@@ -403,7 +402,7 @@ export async function handleOtherPlayerDialogueSubmit(payload: Slack.ViewSubmiss
     const chosenCardId = +payload.view.state.values[CHOOSE_OTHER_PLAYER_CARD_BLOCK_ID][CHOOSE_OTHER_PLAYER_CARD_BLOCK_ID + "_menu"].selected_option.value
     // TODO verify choices
 
-    await TurnManager.otherPlayerChoose(game.id, metadata.playerId, chosenCardId);
+    await TurnManager.otherPlayerChoose(game, metadata.playerId, chosenCardId);
 
     return undefined;
 }

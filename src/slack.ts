@@ -18,6 +18,13 @@ interface User {
     name: string;
     deleted: boolean;
     color: string;
+    profile: {
+        status_text?: string;
+        status_emoji?: string;
+        real_name?: string;
+        display_name?: string;
+        image_original: string;
+    };
 }
 
 interface ConversationOpenResponse extends WebAPICallResult {

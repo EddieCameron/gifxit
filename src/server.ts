@@ -23,6 +23,18 @@ export async function queryNoReturn(query: string, ...params: any[]) {
   await pool.query(query, params);
 }
 
+export async function beginTransaction() {
+    await pool.query('BEGIN')
+}
+
+export async function commitTransaction() {
+    await pool.query('COMMIT')
+}
+
+export async function rollbackTransaction() {
+    await pool.query('ROLLBACK')
+}
+
 export async function transaction(queries: QueryConfig[]) {
   const queryReturns = []
   try {

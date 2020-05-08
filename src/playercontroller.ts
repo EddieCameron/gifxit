@@ -1,24 +1,62 @@
 import * as DB from "./server"
 import * as GifController from "./gifcontroller"
+import * as Slack from "./slack"
 import Player from "./models/player";
 import GifVote from "./models/gifvotes";
 
+export async function updatePlayerSlackName(player: Player) {
+    const userResponse = await Slack.getSlackUser(player.slack_user_id);
+    if (userResponse.ok) {
+        const slackName = userResponse.user.profile.display_name ?? userResponse.user.profile.real_name ?? userResponse.user.name;
+        return ( await DB.query<Player>("UPDATE players SET slack_name = $1 WHERE id=$2 RETURNING *", slackName, player.id) )[0];
+    }
+    else {
+        console.error( "Couldn't update player slack name: " + userResponse.error);
+        return player;
+    }
+}
+
+async function updatePlayerSlackNameIfNeeded(player: Player) {
+    if (player.slack_name == undefined)
+        return updatePlayerSlackName(player);
+    else
+        return player;
+}
+
 export async function getPlayersForGame(id: number) {
     console.log("Getting players for game " + id);
-    return await DB.query<Player>("SELECT * FROM players WHERE game_id=$1", id);
+    const players = await DB.query<Player>("SELECT * FROM players WHERE game_id=$1", id);
+
+    return Promise.all(players.map(p => updatePlayerSlackNameIfNeeded(p)));
 }
 
 export async function getPlayerWithId(playerid: number) {
-    return (await DB.query<Player>("SELECT * FROM players WHERE id=$1", playerid))[0];
+    return updatePlayerSlackNameIfNeeded( ( await DB.query<Player>("SELECT * FROM players WHERE id=$1", playerid))[0] );
 }
 
-export async function getPlayerWithSlackId(slack_id: string) {
-    return (await DB.query<Player>("SELECT * FROM players WHERE slack_user_id=$1", slack_id))[0];
-}
-
-export async function createPlayer(slack_id: string, game_id: number) {
-    console.log("createing player" ); 
+async function createPlayer(slack_id: string, game_id: number) {
+    console.log("creating player" ); 
     return (await DB.query<Player>("INSERT INTO players(slack_user_id, game_id) VALUES($1, $2) RETURNING *", slack_id, game_id))[0];
+}
+
+export async function getOrCreatePlayerWithSlackId(slack_id: string, gameId: number) {
+    await DB.beginTransaction();
+
+    let player: Player;
+
+    // set as chosen
+    const playerMatches = await DB.query<Player>("SELECT * FROM players WHERE slack_user_id=$1 AND game_id=$2", slack_id, gameId);
+    if (playerMatches.length > 0) {
+        player = await updatePlayerSlackNameIfNeeded(playerMatches[0]);
+    }
+    else {
+        player = await createPlayer(slack_id, gameId);
+        await GifController.dealCardsToPlayer(gameId, player.id);
+    }
+    
+    await DB.commitTransaction();
+
+    return player;
 }
 
 // returns players that have still not chosen a gif

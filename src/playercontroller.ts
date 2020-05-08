@@ -4,16 +4,18 @@ import * as Slack from "./slack"
 import Player from "./models/player";
 import GifVote from "./models/gifvotes";
 
-export async function updatePlayerSlackName(player: Player) {
-    const userResponse = await Slack.getSlackUser(player.slack_user_id);
-    if (userResponse.ok) {
-        const slackName = userResponse.user.profile.display_name ?? userResponse.user.profile.real_name ?? userResponse.user.name;
-        return ( await DB.query<Player>("UPDATE players SET slack_name = $1 WHERE id=$2 RETURNING *", slackName, player.id) )[0];
-    }
-    else {
-        console.error( "Couldn't update player slack name: " + userResponse.error);
-        return player;
-    }
+async function updatePlayerSlackName(player: Player) {
+    // need scope
+    // const userResponse = await Slack.getSlackUser(player.slack_user_id);
+    // if (userResponse.ok) {
+    //     const slackName = userResponse.user.profile.display_name ?? userResponse.user.profile.real_name ?? userResponse.user.name;
+    //     return ( await DB.query<Player>("UPDATE players SET slack_name = $1 WHERE id=$2 RETURNING *", slackName, player.id) )[0];
+    // }
+    // else {
+    //     console.error( "Couldn't update player slack name: " + userResponse.error);
+    //     return player;
+    // }
+    return player;
 }
 
 async function updatePlayerSlackNameIfNeeded(player: Player) {

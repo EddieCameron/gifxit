@@ -296,8 +296,10 @@ export async function handleStartMainPlayerChoose(payload: Slack.ActionPayload, 
     const cards = await GifController.getPlayerCards(metadata.gameId, metadata.playerId);
 
     const modal = getMainPlayerChooseDialogue(cards, game.id, metadata.playerId, game.currentturnidx);
-    await Slack.showModal(payload.trigger_id, modal);
-
+    const open = await Slack.showModal(payload.trigger_id, modal);
+    if (!open.ok) {
+        respond({ response_type: "ephemeral", replace_original: false, text: "Something went wrong with Slack. Try again?" });
+    }
     // TODO delete message if modal is cancelled
     // respond({ delete_original: true });
 }
@@ -371,7 +373,10 @@ export async function handleStartOtherPlayerChoose(payload: Slack.ActionPayload,
     const mainplayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
 
     const modal = getOtherPlayerChooseDialogue(cards, game.currentkeyword, mainplayer.slack_user_id, game.id, player.id, game.currentturnidx);
-    await Slack.showModal(payload.trigger_id, modal);
+    const open = await Slack.showModal(payload.trigger_id, modal);
+    if (!open.ok) {
+        respond({ response_type: "ephemeral", replace_original: false, text: "Something went wrong with Slack. Try again?" });
+    }
 
     // TODO delete message if modal is cancelled
     // respond({ delete_original: true });

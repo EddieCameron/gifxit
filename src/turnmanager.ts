@@ -9,6 +9,7 @@ import { MrkdwnElement, ImageBlock, SectionBlock } from "@slack/web-api"
 import GifVote from "./models/gifvotes"
 import Game from "./models/game"
 import Player from "./models/player"
+import { DialogueMetadata } from "./gamemanager"
 
 export function getEmojiForNumber(num: number) {
     switch (num) {
@@ -80,6 +81,44 @@ export function getBigCardSection(card: Gif, handNumber: number) {
         image_url: card.url,
         alt_text: "GIF " + handNumber.toString()
     } as ImageBlock;
+}
+
+function getTurnStartMessage(mainPlayerSlackId: string, game: Game) {
+    const metadata: DialogueMetadata = {
+        gameId: game.id,
+        playerId: game.currentplayerturn,
+        turnIdx: game.currentturnidx,
+    }
+
+    return {
+        text: `It's <@${mainPlayerSlackId}>'s turn!`,
+        blocks: [
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: `It's <@${mainPlayerSlackId}>'s turn!`,
+                }
+            },
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: `...or...skip 'em if hey can't play right now`,
+                },
+                accessory: {
+                    type: "button",
+                    text: {
+                        type: "plain_text",
+                        text: "Skip their turn"
+                    },
+                    style: "danger",
+                    value: JSON.stringify(metadata),
+                    action_id: PlayerChoose.MAIN_PLAYER_PASS_ACTION_ID
+                }
+            } 
+        ]
+    }
 }
 
 export function getMainPlayerChoseMessage(mainPlayerSlackId: string, keyword: string, gameTurnIdx: number): Slack.Message {
@@ -606,7 +645,8 @@ export async function startNextTurn( gameId: number ) {
 
     // go to next player
     const nextplayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
-    await Slack.postMessage( game.slackchannelid, { text: `It's <@${nextplayer.slack_user_id}>'s turn!` })
+    const startTurnMessage = getTurnStartMessage(nextplayer.slack_user_id, game);
+    await Slack.postMessage( game.slackchannelid, startTurnMessage )
 
     // prompt main player
     return PlayerChoose.promptMainPlayerTurn(nextplayer.slack_user_id, game, nextplayer.id, game.currentturnidx);

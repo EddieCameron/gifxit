@@ -397,12 +397,20 @@ export async function handleOtherPlayerDialogueSubmit(payload: Slack.ViewSubmiss
     if (metadata.playerId == game.currentplayerturn)
         throw new Error("The main player but tried to choose a card");
     console.log("checking player turn");
+
+    const player = await PlayerController.getPlayerWithId(metadata.playerId);
+    if (player.chosen_gif_id != undefined) {
+        throw new Error("You've already chosen a GIF this turn");
+    }
     
     console.log(JSON.stringify(payload.view));
     const chosenCardId = +payload.view.state.values[CHOOSE_OTHER_PLAYER_CARD_BLOCK_ID][CHOOSE_OTHER_PLAYER_CARD_BLOCK_ID + "_menu"].selected_option.value
     // TODO verify choices
 
+
+
     await TurnManager.otherPlayerChoose(game, metadata.playerId, chosenCardId);
+    await Slack.postEphemeralMessage(game.slackchannelid, player.slack_user_id, { text: "👌 GIF PICKED" });
 
     return undefined;
 }

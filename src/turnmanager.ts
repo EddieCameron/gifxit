@@ -281,7 +281,7 @@ function getPlayerChooseSummaryMessage(turnIdx: number, mainPlayerSlackId: strin
             type: "section",
             text: {
                 type: "mrkdwn",
-                text: `Enough players have picked *${keyword}* GIFs. Move on to voting!`
+                text: `Enough players have picked *${keyword}* GIFs. Wait for more or click to move on to voting`
             },
             accessory: {
                 type: "button",

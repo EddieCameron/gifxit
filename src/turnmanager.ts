@@ -479,8 +479,7 @@ export function getNextTurnPrompt(currentTurnIdx: number): Slack.SlashResponse {
     }
 }
 
-async function showScoreSummary(game: Game) {
-    const players = await PlayerController.getPlayersForGame(game.id);
+async function showScoreSummary(game: Game, players: Player[] ) {
     const message = getScoreSummaryMessage(players);
     return Slack.postMessage(game.slackchannelid, message);
 }
@@ -527,7 +526,8 @@ export async function scoreVotes(game: Game) {
     const voteSummaryMessage = getVotesAreInMessage(gifVotes, game.currentplayerturn);
     await Slack.postMessage(game.slackchannelid, voteSummaryMessage);
 
-    await showScoreSummary(game);
+    // show updated scores for recent players
+    await showScoreSummary(game, gifVotes.map(v => v.chosenByPlayer));
 
     await Slack.postMessage( game.slackchannelid, getNextTurnPrompt(game.currentturnidx ) );
 }

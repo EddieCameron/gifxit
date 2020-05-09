@@ -129,7 +129,14 @@ export function getMainPlayerChoseMessage(mainPlayerSlackId: string, keyword: st
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: `🛎 <@${mainPlayerSlackId}> has chosen a GIF! 🛎`
+                    text: `🛎 <!here> New Round! 🛎`
+                }
+            },
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: `<@${mainPlayerSlackId}> has chosen a GIF!`
                 }
             },
             {

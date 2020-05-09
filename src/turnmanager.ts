@@ -104,7 +104,7 @@ function getTurnStartMessage(mainPlayerSlackId: string, game: Game) {
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: `...or...skip 'em if hey can't play right now`,
+                    text: `...or...skip 'em if they can't play right now`,
                 },
                 accessory: {
                     type: "button",
@@ -390,12 +390,9 @@ function getVotesAreInMessage(gifVotes: GifVote[], mainPlayerId: number ): Slack
         const isMainPlayerGif = gifVote.chosenByPlayer.id == mainPlayerId;
         let voteText = `Chosen by <@${gifVote.chosenByPlayer.slack_user_id}>`
         if (isMainPlayerGif)
-            voteText += `✅`;
+            voteText = `✅ ${voteText} ✅`;
         
-        voteText += `\nVotes: `;
-        for (const player of gifVote.votes) {
-            voteText += ` <@${player.slack_user_id}>`
-        }
+        voteText += `\nVotes: ${getTextList(gifVote.votes.map( p => `<@${p.slack_user_id}>`))}`
 
         const numVotes = gifVote.votes.length;
         if (isMainPlayerGif) {
@@ -411,10 +408,7 @@ function getVotesAreInMessage(gifVotes: GifVote[], mainPlayerId: number ): Slack
         }
         else if (numVotes > 0) {
             voteText += `\n`;
-            for (const vote of gifVote.votes) {
-                voteText += `<@${vote.slack_user_id}> `
-            }
-            voteText += ` were fooled! <@${gifVote.chosenByPlayer.slack_user_id}> gets ${getEmojiForNumber(numVotes)} points`
+            voteText += `They got fooled! <@${gifVote.chosenByPlayer.slack_user_id}> gets ${getEmojiForNumber(numVotes)} points`
         }
 
         voteSection.text.text = voteText;

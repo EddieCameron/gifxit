@@ -521,7 +521,7 @@ export async function scoreVotes(game: Game) {
     // actually update
     for (const gifVote of gifVotes) {
         await PlayerController.addPoints(gifVote.chosenByPlayer.id, playerPoints[gifVote.chosenByPlayer.id]);
-    }        
+    }
 
     const voteSummaryMessage = getVotesAreInMessage(gifVotes, game.currentplayerturn);
     await Slack.postMessage(game.slackchannelid, voteSummaryMessage);
@@ -635,11 +635,11 @@ export async function mainPlayerChoose(gameid: number, playerId: number, cardId:
     //return PlayerChoose.promptPlayerChooses(game, playersToChoose.map(p => p.slack_user_id));
 }
 
-export async function startNextTurn( gameId: number ) {
-    const game = await GameController.startNextTurn(gameId);
+export async function startNextTurn( game: Game, player: Player ) {
+    await GameController.startNextTurn(game, player);
 
     // draw cards
-    const allPlayers = await PlayerController.resetPlayersForNewTurn(gameId);
+    const allPlayers = await PlayerController.resetPlayersForNewTurn(game.id);
     for (const player of allPlayers) {
         await GifController.dealCardsToPlayer(game.id, player.id);
     }
@@ -653,14 +653,16 @@ export async function startNextTurn( gameId: number ) {
     return PlayerChoose.promptMainPlayerTurn(nextplayer.slack_user_id, game, nextplayer.id, game.currentturnidx);
 }
 
-export async function startGame(gameid: number) {
+export async function startGame(game: Game) {
     // set up player order TODO just use join order for now
-    return startNextTurn(gameid);
+    const allplayers = await PlayerController.getPlayersForGame( game.id )
+    startNextTurn(game, allplayers[Math.floor(Math.random() * allplayers.length)]);
 }
 
 /// debug 
 export async function debugRestartTurn(game: Game) {
-    startNextTurn(game.id);
+    const allplayers = await PlayerController.getPlayersForGame( game.id )
+    startNextTurn(game, allplayers[Math.floor(Math.random() * allplayers.length)]);
 }
 
 export async function debugScoreTurn(game: Game) {

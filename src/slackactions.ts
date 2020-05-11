@@ -40,7 +40,7 @@ const createGameResponse: Slack.SlashResponse = {
 export async function handleCreateGameAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void): Promise<void> {
     const game = await GameManager.createGame(payload.channel.id, payload.user.id);
 
-    await TurnManager.startGame(game.id);
+    await TurnManager.startGame(game);
 }
 
 export async function handleRemindOtherPlayerChoose(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
@@ -119,7 +119,13 @@ export async function handleStartNextTurnAction(payload: Slack.ActionPayload, re
         return;
     }
 
-    await TurnManager.startNextTurn(game.id);
+    const player = await PlayerController.getOrCreatePlayerWithSlackId(payload.user.id, game.id);
+    if (player == undefined) {
+        respond({ replace_original: false, response_type: "ephemeral", text: "You can't start a turn in this channel" });
+        return;
+    }
+
+    await TurnManager.startNextTurn(game, player);
     respond({ delete_original: true });
 }
 
@@ -223,6 +229,9 @@ export function init(): void {
     Slack.addActionHandler({ actionId: PlayerChoose.START_MAIN_PLAYER_CHOOSE_ACTION_ID }, PlayerChoose.handleStartMainPlayerChoose);
     Slack.addActionHandler({ actionId: PlayerChoose.MAIN_PLAYER_PASS_ACTION_ID }, PlayerChoose.handleMainPlayerPass);
     Slack.addActionHandler({ actionId: PlayerChoose.START_OTHER_PLAYER_CHOOSE_ACTION_ID }, PlayerChoose.handleStartOtherPlayerChoose);
+    Slack.addActionHandler({ actionId: PlayerChoose.CHOOSE_MAIN_PLAYER_REDEAL_CARDS_ACTION_ID }, PlayerChoose.handleMainPlayerRedealAction);
+    Slack.addActionHandler({ actionId: PlayerChoose.CHOOSE_OTHER_PLAYER_REDEAL_CARDS_ACTION_ID }, PlayerChoose.handleOtherPlayerRedealAction);
+
     Slack.addActionHandler({ actionId: TurnManager.REMIND_CHOOSE_ACTION }, handleRemindOtherPlayerChoose);
     Slack.addActionHandler({ actionId: PlayerVotes.OPEN_VOTE_DIALOGUE_CALLBACK_ID }, PlayerVotes.handleOpenPlayerVoteDialogue);
     Slack.addActionHandler({ actionId: TurnManager.SKIP_ACTION }, handleSkipOtherPlayersChooseAction );

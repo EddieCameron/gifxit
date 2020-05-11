@@ -105,10 +105,11 @@ export function getOtherPlayerChoosePrompt(turnIdx: number) {
     }
 }
 
+export const CHOOSE_MAIN_PLAYER_REDEAL_CARDS_ACTION_ID = "choose_main_player_redeal_action_id";
 export const CHOOSE_MAIN_PLAYER_MODAL_CALLBACK_ID = "choose_main_player_callback";
 const CHOOSE_MAIN_PLAYER_CARD_BLOCK_ID = "choose_main_player_card";
 const CHOOSE_MAIN_PLAYER_KEYWORD_BLOCK_ID = "choose_main_player_keyword";
-function getMainPlayerChooseDialogue(cards: Gif[], gameId: number, playerId: number, turnIdx: number): View {
+function getMainPlayerChooseDialogue(cards: Gif[], gameId: number, playerId: number, turnIdx: number, showRefreshButton: boolean): View {
     const metadata: DialogueMetadata = {
         gameId: gameId,
         playerId: playerId,
@@ -197,12 +198,32 @@ function getMainPlayerChooseDialogue(cards: Gif[], gameId: number, playerId: num
         }
     });
 
+    if (showRefreshButton) {
+        message.blocks.push( {
+            type: "section",
+            text: {
+                type: "mrkdwn",
+                text: `I'm sick of these GIFs, give me some new ones`
+            },
+            accessory: {
+                type: "button",
+                text: {
+                    type: "plain_text",
+                    text: "Refresh GIFs"
+                },
+                style: "primary",
+                action_id: CHOOSE_MAIN_PLAYER_REDEAL_CARDS_ACTION_ID
+            }
+        })
+    }
+
     return message;
 }
 
+export const CHOOSE_OTHER_PLAYER_REDEAL_CARDS_ACTION_ID = "choose_other_player_redeal_action_id";
 export const CHOOSE_OTHER_PLAYER_MODAL_CALLBACK_ID = "choose_other_player_callback";
 const CHOOSE_OTHER_PLAYER_CARD_BLOCK_ID = "choose_other_player_card";
-function getOtherPlayerChooseDialogue(cards: Gif[], keyword: string, mainPlayerSlackId: string, gameId: number, playerId: number, turnIdx: number): View {
+function getOtherPlayerChooseDialogue(cards: Gif[], keyword: string, mainPlayerSlackId: string, gameId: number, playerId: number, turnIdx: number, showRefreshButton: boolean): View {
     const metadata: DialogueMetadata = {
         gameId: gameId,
         playerId: playerId,
@@ -278,6 +299,25 @@ function getOtherPlayerChooseDialogue(cards: Gif[], keyword: string, mainPlayerS
         }
     });
 
+    if (showRefreshButton) {
+        message.blocks.push( {
+            type: "section",
+            text: {
+                type: "mrkdwn",
+                text: `I'm sick of these GIFs, give me some new ones`
+            },
+            accessory: {
+                type: "button",
+                text: {
+                    type: "plain_text",
+                    text: "Refresh GIFs"
+                },
+                style: "primary",
+                action_id: CHOOSE_OTHER_PLAYER_REDEAL_CARDS_ACTION_ID
+            }
+        })
+    }
+
     return message;
 }
 
@@ -294,8 +334,9 @@ export async function handleStartMainPlayerChoose(payload: Slack.ActionPayload, 
         throw new Error("Not the main player but tried to choose a card");
     
     const cards = await GifController.getPlayerCards(metadata.gameId, metadata.playerId);
+    const player = await PlayerController.getPlayerWithId(game.currentplayerturn);
 
-    const modal = getMainPlayerChooseDialogue(cards, game.id, metadata.playerId, game.currentturnidx);
+    const modal = getMainPlayerChooseDialogue(cards, game.id, metadata.playerId, game.currentturnidx, player.last_refresh_on_turn < game.currentturnidx );
     const open = await Slack.showModal(payload.trigger_id, modal);
     if (!open.ok) {
         respond({ response_type: "ephemeral", replace_original: false, text: "Something went wrong with Slack. Try again?" });
@@ -314,8 +355,8 @@ export async function handleMainPlayerPass(payload: Slack.ActionPayload, respond
     if (metadata.playerId != game.currentplayerturn)
         throw new Error("Not the main player but tried to pass");
     
-
-    await TurnManager.startNextTurn(game.id);
+    const nextTurnPlayer = await GameController.pickNextPlayerTurn(game);
+    await TurnManager.startNextTurn(game, nextTurnPlayer);
     respond({ delete_original: true });
 }
 
@@ -372,7 +413,7 @@ export async function handleStartOtherPlayerChoose(payload: Slack.ActionPayload,
     const cards = await GifController.getPlayerCards(game.id, player.id);
     const mainplayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
 
-    const modal = getOtherPlayerChooseDialogue(cards, game.currentkeyword, mainplayer.slack_user_id, game.id, player.id, game.currentturnidx);
+    const modal = getOtherPlayerChooseDialogue(cards, game.currentkeyword, mainplayer.slack_user_id, game.id, player.id, game.currentturnidx,player.last_refresh_on_turn < game.currentturnidx );
     const open = await Slack.showModal(payload.trigger_id, modal);
     if (!open.ok) {
         respond({ response_type: "ephemeral", replace_original: false, text: "Something went wrong with Slack. Try again?" });
@@ -412,4 +453,48 @@ export async function handleOtherPlayerDialogueSubmit(payload: Slack.ViewSubmiss
     await Slack.postEphemeralMessage(game.slackchannelid, player.slack_user_id, { text: "👌 GIF PICKED" });
 
     return undefined;
+}
+
+export async function handleMainPlayerRedealAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
+    console.log("Redealing main player cards the other players");
+    console.log(JSON.stringify(payload));
+
+    const metadata = JSON.parse(payload.view.private_metadata) as DialogueMetadata;
+    const game = await GameController.getGameForId(metadata.gameId)
+    if (game == undefined || game.currentturnidx != metadata.turnIdx) {
+        throw Error("This game doesn't exit");
+    }
+
+    const player = await PlayerController.getPlayerWithId(metadata.playerId);
+    if (player.last_refresh_on_turn >= game.currentturnidx) {
+        throw Error("This game doesn't exit or this has already been skipped");        
+    }
+
+    const newGifs = await GifController.redealCardsToPlayer(game.id, player.id, game.currentturnidx);
+
+    const modal = getMainPlayerChooseDialogue(newGifs, game.id, metadata.playerId, game.currentturnidx, false );
+    
+    await Slack.updateModal(payload.container.view_id, modal);
+}
+
+export async function handleOtherPlayerRedealAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
+    console.log("Redealing other player cards");
+    console.log(JSON.stringify(payload));
+
+    const metadata = JSON.parse(payload.view.private_metadata) as DialogueMetadata;
+    const game = await GameController.getGameForId(metadata.gameId)
+    if (game == undefined || game.currentturnidx != metadata.turnIdx) {
+        throw Error("This game doesn't exit");
+    }
+
+    const player = await PlayerController.getPlayerWithId(metadata.playerId);
+    if (player.last_refresh_on_turn >= game.currentturnidx) {
+        throw Error("This game doesn't exit or this has already been skipped");        
+    }
+
+    const newGifs = await GifController.redealCardsToPlayer(game.id, player.id, game.currentturnidx);
+    const mainPlayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
+    const modal = getOtherPlayerChooseDialogue(newGifs, game.currentkeyword, mainPlayer.slack_user_id, game.id, player.id, game.currentturnidx, false );
+    
+    await Slack.updateModal(payload.container.view_id, modal);
 }

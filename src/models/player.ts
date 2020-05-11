@@ -8,4 +8,6 @@ export default interface Player {
     chosen_gif_id: number;
     voted_gif_id: number;
     score: number;
+
+    last_refresh_on_turn: number;
 }

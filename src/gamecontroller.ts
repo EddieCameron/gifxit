@@ -42,28 +42,23 @@ export async function createGame(channel: string) {
     return game;
 }
 
-export async function startNextTurn(gameId: number) {
+export async function pickNextPlayerTurn(game: Game) {
     // pick next player
-    const [players, game] = await Promise.all([
-        PlayerController.getPlayersForGame(gameId),
-        getGameForId(gameId)
-    ]);
-    
+    const players = await PlayerController.getPlayersForGame(game.id);
+        
     players.sort((a: Player, b: Player) => a.id - b.id);
-
-    let nextPlayerIdx = -1;
+    
     for (const player of players) {
         if (player.id > game.currentplayerturn) {
-            nextPlayerIdx = player.id;
-            break;
+            return player;
         }
     }
+    
+    return players[0];  // start again
+}
 
-    if (nextPlayerIdx == -1) {
-        // ran out of players, go back to start
-        nextPlayerIdx = players[0].id
-    }
-    game.currentplayerturn = nextPlayerIdx;
+export async function startNextTurn(game: Game, player: Player) {
+    game.currentplayerturn = player.id;
 
     // increment turn idx
     game.currentturnidx++;
@@ -77,7 +72,7 @@ export async function startNextTurn(gameId: number) {
 
     await DB.queryNoReturn(
         "UPDATE games SET currentplayerturn = $1, currentturnidx = $2, currentkeyword = $3, isreadytovote = $4, isvotingcomplete = $5 WHERE id=$6",
-        nextPlayerIdx, game.currentturnidx, game.currentkeyword, game.isreadytovote, game.isvotingcomplete, game.id);
+        player.id, game.currentturnidx, game.currentkeyword, game.isreadytovote, game.isvotingcomplete, game.id);
 
     return game;
 }

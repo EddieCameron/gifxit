@@ -240,6 +240,10 @@ export interface ActionPayload {
         blocks?: (KnownBlock | Block)[];
         ts: string;
     };
+    container?: {
+        type: string;
+        view_id?: string;
+    };
     view?: View;
     channel?: {
         id: string;

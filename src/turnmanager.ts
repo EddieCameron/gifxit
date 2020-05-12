@@ -590,7 +590,8 @@ export async function startVoting(game: Game) {
     const chosenPlayers = allPlayers.filter(p => p.chosen_gif_id != undefined);
     if (chosenPlayers.length < 3) {
         await Slack.postMessage(game.slackchannelid, notEnoughPlayersMessage );
-        await Slack.postMessage( game.slackchannelid, getNextTurnPrompt(game.currentturnidx ) );
+        await Slack.postMessage(game.slackchannelid, getNextTurnPrompt(game.currentturnidx));
+        return;
     }
 
     const chosenGifs = PlayerVotes.shuffle(await GifController.getCards(chosenPlayers.map(p => p.chosen_gif_id)));

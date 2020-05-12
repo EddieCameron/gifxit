@@ -70,7 +70,7 @@ export async function redealCardsToPlayer(gameId: number, playerId: number, game
     try {
         await DB.beginTransaction()
         await deletePlayerCards(gameId, playerId);
-        const gifs = fillPlayerHand([], gameId, playerId);
+        const gifs = await fillPlayerHand([], gameId, playerId);
         await DB.queryNoReturn("UPDATE players SET last_refresh_on_turn = $1 WHERE id=$2", gameTurnIdx, playerId);
         await DB.commitTransaction();
         return gifs;

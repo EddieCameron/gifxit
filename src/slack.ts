@@ -1,6 +1,6 @@
 import { createEventAdapter } from '@slack/events-api'
 import { createMessageAdapter } from '@slack/interactive-messages'
-import { WebClient, View, MessageAttachment, KnownBlock, Block, Option, WebAPICallResult } from "@slack/web-api";
+import { WebClient, View, MessageAttachment, KnownBlock, Block, Option, WebAPICallResult, PlainTextElement } from "@slack/web-api";
 import { Application, urlencoded, } from 'express';
 
 import { ViewConstraints, ActionConstraints } from '@slack/interactive-messages/dist/adapter';
@@ -208,6 +208,7 @@ export interface ViewSubmissionPayload {
                         value?: string;
                         selected_option?: {
                             value: string;
+                            text: PlainTextElement;
                         };
                     };
                 };

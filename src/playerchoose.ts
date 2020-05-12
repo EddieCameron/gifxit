@@ -1,4 +1,4 @@
-import { View, Option } from "@slack/web-api";
+import { View, Option, InputBlock } from "@slack/web-api";
 import Gif from "./models/gif";
 import * as Slack from "./slack"
 import * as TurnManager from "./turnmanager"
@@ -188,12 +188,11 @@ function getMainPlayerChooseDialogue(cards: Gif[], gameId: number, playerId: num
             "emoji": true
         },
         "element": {
-            type: "static_select",
-            initial_option: options[0],
+            type: "radio_buttons",
             action_id: CHOOSE_MAIN_PLAYER_CARD_BLOCK_ID + "_menu",
             options: options
         }
-    });
+    } as InputBlock);
 
     // keyword entry
     message.blocks.push({
@@ -294,7 +293,6 @@ function getOtherPlayerChooseDialogue(cards: Gif[], keyword: string, mainPlayerS
         },
         "element": {
             type: "static_select",
-            initial_option: options[0],
             action_id: CHOOSE_OTHER_PLAYER_CARD_BLOCK_ID + "_menu",
             options: options
         }
@@ -370,7 +368,7 @@ export async function handleMainPlayerDialogueSubmit(payload: Slack.ViewSubmissi
         throw new Error("Already chosen a card");
     if (metadata.playerId != game.currentplayerturn)
         throw new Error("Not the main player but tried to choose a card");
-    
+        
     const chosenCardId = +payload.view.state.values[CHOOSE_MAIN_PLAYER_CARD_BLOCK_ID][CHOOSE_MAIN_PLAYER_CARD_BLOCK_ID+"_menu"].selected_option.value
     const chosenKeyword = payload.view.state.values[CHOOSE_MAIN_PLAYER_KEYWORD_BLOCK_ID][CHOOSE_MAIN_PLAYER_KEYWORD_BLOCK_ID + "_text"].value
     // TODO verify choices
@@ -473,7 +471,7 @@ export async function handleMainPlayerRedealAction(payload: Slack.ActionPayload,
     const newGifs = await GifController.redealCardsToPlayer(game.id, player.id, game.currentturnidx);
 
     const modal = getMainPlayerChooseDialogue(newGifs, game.id, metadata.playerId, game.currentturnidx, false );
-    
+    console.log("modal refreshed: " + JSON.stringify(modal));
     await Slack.updateModal(payload.container.view_id, modal);
 }
 

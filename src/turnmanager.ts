@@ -56,7 +56,7 @@ export function getTextList(listItems: string[]) {
     return message;
 }
 
-export function getSmallCardSection(card: Gif, handNumber: number) {
+export function getSmallCardSection(card: Gif, handNumber?: number) {
     return {
         "type": "section",
         "text": {
@@ -66,7 +66,7 @@ export function getSmallCardSection(card: Gif, handNumber: number) {
         "accessory": {
             "type": "image",
             "image_url": card.url,
-            "alt_text": "GIF " + handNumber.toString()
+            "alt_text": "GIF " + (handNumber == undefined ? "" : handNumber.toString())
         }
     } as SectionBlock;
 }
@@ -385,11 +385,12 @@ function getVotesAreInMessage(gifVotes: GifVote[], mainPlayerId: number ): Slack
     return message
 }
 
-function getScoreSummaryMessage(players: Player[]) {
+function getScoreSummaryMessage(players: Player[], scoreDeltaPerPlayer: { [playerId: number]: number }) {
     const scoreFields: MrkdwnElement[] = players.map(p => {
+        const delta = scoreDeltaPerPlayer[p.id];
         return {
             type: "mrkdwn",
-            text: `<@${p.slack_user_id}> ${p.score}`
+            text: `<@${p.slack_user_id}> ${p.score - delta} + ${delta} = *${p.score}*`
         };
     });
 
@@ -459,11 +460,6 @@ const notEnoughPlayersMessage: Slack.Message = {
     ]
 }
 
-async function showScoreSummary(game: Game, players: Player[] ) {
-    const message = getScoreSummaryMessage(players);
-    return Slack.postMessage(game.slackchannelid, message);
-}
-
 export async function scoreVotes(game: Game) {
     const gifVotes = await PlayerController.getAllVotes(game.id);
     await GameController.completeVote(game.id);
@@ -507,7 +503,8 @@ export async function scoreVotes(game: Game) {
     await Slack.postMessage(game.slackchannelid, voteSummaryMessage);
 
     // show updated scores for recent players
-    await showScoreSummary(game, gifVotes.map(v => v.chosenByPlayer));
+    const scoreSummaryMessage = getScoreSummaryMessage(gifVotes.map(v => v.chosenByPlayer), playerPoints);
+    await Slack.postMessage(game.slackchannelid, scoreSummaryMessage);
 
     await Slack.postMessage( game.slackchannelid, getNextTurnPrompt(game.currentturnidx ) );
 }

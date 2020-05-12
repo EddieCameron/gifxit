@@ -600,6 +600,12 @@ export async function startVoting(game: Game) {
     const mainPlayer = allPlayers.find(p => p.id == game.currentplayerturn);
     const votingPlayers = chosenPlayers.filter(p => p.id != game.currentplayerturn);
     await PlayerVotes.promptPlayerVotes(game, mainPlayer, votingPlayers);
+
+    const metadata: ChooseTimerMetadata = {
+        gameId: game.id,
+        turnIdx: game.currentturnidx
+    }
+    addTimerDueDate("voteTimeUp", game.vote_end_time, JSON.stringify(metadata));
 }
 
 export async function otherPlayerChoose(game: Game, playerId: number, chosenGif: number) {
@@ -668,6 +674,27 @@ export async function handleChooseTimeUp(metadata: string) {
     }
 
     return startVoting(game);
+}
+
+export async function handleVoteTimeUp(metadata: string) {
+    const chooseMetadata = JSON.parse(metadata) as ChooseTimerMetadata;
+
+    const game = await GameController.getGameForId(chooseMetadata.gameId);
+    if (game == undefined || game.currentturnidx != chooseMetadata.turnIdx) {
+        console.log("This game doesn't exit or this has already been skipped");
+        return;
+    }
+
+    if (!game.isreadytovote) {
+        console.log("We aren't voting yet?")
+        return;
+    }
+    if (game.isvotingcomplete) {
+        console.log("already finished voting")
+        return;
+    }
+
+    return scoreVotes(game);
 }
 
 

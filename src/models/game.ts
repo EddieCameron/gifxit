@@ -13,4 +13,5 @@ export default interface Game {
     lastvotesummarymessage: string;
 
     choose_end_time: Date;
+    vote_end_time: Date;
 }

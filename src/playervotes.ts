@@ -23,7 +23,7 @@ export function shuffle(a: any[]) {
 }
 
 export const OPEN_VOTE_DIALOGUE_CALLBACK_ID = "open_vote_dialogue";
-function getPromptStartVoteMessage(game: Game, playerId: number, mainPlayerSlackId: string, keyword: string) {
+function getPromptStartVoteMessage(game: Game, playerId: number, mainPlayerSlackId: string, keyword: string, voteEndTime: Date) {
     const metadata: DialogueMetadata = {
         gameId: game.id,
         playerId: playerId,
@@ -36,7 +36,7 @@ function getPromptStartVoteMessage(game: Game, playerId: number, mainPlayerSlack
             type: "section",
             text: {
                 type: "mrkdwn",
-                text: `🗳Vote for the card that you think <@${mainPlayerSlackId}> chose for the message: *${keyword}* 🗳`
+                text: `🗳 You have until <!date^${voteEndTime.getTime()/1000|0}^{time}|${voteEndTime.toTimeString()}> to vote for the card that you think <@${mainPlayerSlackId}> chose for the message: *${keyword}* 🗳`
             },
             accessory: {
                 type: "button",
@@ -128,7 +128,7 @@ function getVoteDialogue(gifOptions: Gif[], keyword: string, mainPlayerSlackId: 
 }
 
 export function getPlayerVotePrompt(game: Game, mainPlayer: Player, player: Player) {
-    return getPromptStartVoteMessage(game, player.id, mainPlayer.slack_user_id, game.currentkeyword);
+    return getPromptStartVoteMessage(game, player.id, mainPlayer.slack_user_id, game.currentkeyword, game.vote_end_time);
 }
 
 export async function promptPlayerVote(game: Game, mainPlayer: Player, player: Player) {

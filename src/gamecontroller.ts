@@ -6,6 +6,7 @@ import Player from "./models/player";
 const games: { [id: number]: Game } = {}
 
 const choosePhaseLengthMs = 1000 * 60 * 10;
+const votePhaseLengthMs = 1000 * 60 * 10;
 
 export async function getGameForId(id: number) {
     if (games[id] != undefined)
@@ -98,11 +99,14 @@ export async function setKeyword(gameId: number, keyword: string) {
 export async function startVote(gameId: number) {
     const game = await getGameForId(gameId);
     
+    const endTime = new Date(Date.now() + votePhaseLengthMs);
+    
     game.isreadytovote = true;
+    game.vote_end_time = endTime;
     games[game.id] = game;
     await DB.queryNoReturn(
-        "UPDATE games SET isreadytovote = $1 WHERE id=$2",
-        true, game.id);
+        "UPDATE games SET isreadytovote = $1, vote_end_time = $2 WHERE id=$3",
+        true, endTime, game.id);
     return game;
 }
 

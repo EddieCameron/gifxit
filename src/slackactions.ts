@@ -154,8 +154,11 @@ async function handleNoQuerySlash(game: Game, slackId: string): Promise<Slack.Sl
         // other players need to choose
         if (thisPlayer.chosen_gif_id == undefined) {
             //prompt other player choose card
-            const mainPlayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
-            const message = TurnManager.getMainPlayerChoseMessage(mainPlayer.slack_user_id, game.currentkeyword, game.currentturnidx);
+            const allplayers = await PlayerController.getPlayersForGame(game.id);
+            const mainPlayer = allplayers.find(p => p.id == game.currentplayerturn);
+            const pickedplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id != undefined);
+
+            const message = TurnManager.getPlayerChooseSummaryMessage(game.currentturnidx, mainPlayer.slack_user_id, game.currentkeyword, pickedplayers, pickedplayers.length >= 2, game.choose_end_time);
             return { response_type: "ephemeral", text: message.text, blocks: message.blocks };
         }
         else {

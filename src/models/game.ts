@@ -11,4 +11,6 @@ export default interface Game {
 
     lastchosesummarymessage: string;
     lastvotesummarymessage: string;
+
+    choose_end_time: Date;
 }

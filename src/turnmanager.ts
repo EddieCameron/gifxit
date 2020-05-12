@@ -10,6 +10,7 @@ import GifVote from "./models/gifvotes"
 import Game from "./models/game"
 import Player from "./models/player"
 import { DialogueMetadata } from "./gamemanager"
+import { addTimer, addTimerDueDate } from "./steadytimer/steadytimer"
 
 export function getEmojiForNumber(num: number) {
     switch (num) {
@@ -121,53 +122,6 @@ function getTurnStartMessage(mainPlayerSlackId: string, game: Game) {
     }
 }
 
-export function getMainPlayerChoseMessage(mainPlayerSlackId: string, keyword: string, gameTurnIdx: number): Slack.Message {
-    return {
-        text: `<@${mainPlayerSlackId}> has picked their card`,
-        blocks: [
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: `🛎 <!here> New Round! 🛎`
-                }
-            },
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: `<@${mainPlayerSlackId}> has chosen a GIF!`
-                }
-            },
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: `Their message is *${keyword}*`
-                }
-            },
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: `Pick a reaction GIF for their message`
-                },
-                accessory: {
-                    type: "button",
-                    text: {
-                        type: "plain_text",
-                        text: "Pick a GIF"
-                    },
-                    style: "primary",
-                    value: gameTurnIdx.toString(),
-                    action_id: PlayerChoose.START_OTHER_PLAYER_CHOOSE_ACTION_ID
-                }
-            }
-        ]
-    }
-}
-
-
 export const REMIND_CHOOSE_ACTION = "remind_player_choose";
 function getRemainingPlayersBlocks(remainingPlayers: Player[]) {
     const blocks = []   
@@ -214,7 +168,7 @@ function getSkipVoteBlock( gameTurnIdx: number ) {
     }
 }
 
-function getPlayerChooseSummaryMessage(turnIdx: number, mainPlayerSlackId: string, keyword: string, chosenPlayers: Player[], showStartVoteButton: boolean ) {
+export function getPlayerChooseSummaryMessage(turnIdx: number, mainPlayerSlackId: string, keyword: string, chosenPlayers: Player[], showStartVoteButton: boolean, endChooseTime: Date ) {
     const message: Slack.Message = {
         text: 'Choose your GIFs',
         blocks: [
@@ -222,7 +176,14 @@ function getPlayerChooseSummaryMessage(turnIdx: number, mainPlayerSlackId: strin
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: `🛎 <@${mainPlayerSlackId}> has chosen a GIF! 🛎`
+                    text: `🛎 <!here> New Round! 🛎`
+                }
+            },
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: `<@${mainPlayerSlackId}> has chosen a GIF!`
                 }
             },
             {
@@ -269,7 +230,7 @@ function getPlayerChooseSummaryMessage(turnIdx: number, mainPlayerSlackId: strin
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: `Pick a reaction GIF for their message`
+                    text: `You have until <!date^${endChooseTime.getTime()/1000|0}^{time}|${endChooseTime.toTimeString()}> to pick a reaction GIF for their message`
                 },
                 accessory: {
                     type: "button",
@@ -537,7 +498,7 @@ export async function postNewChooseSummaryMessage(game: Game) {
     const mainplayer = allplayers.find(p => p.id == game.currentplayerturn);
     const pickedplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id != undefined);
 
-    const message = getPlayerChooseSummaryMessage(game.currentturnidx, mainplayer.slack_user_id, game.currentkeyword, pickedplayers, pickedplayers.length >= 2);
+    const message = getPlayerChooseSummaryMessage(game.currentturnidx, mainplayer.slack_user_id, game.currentkeyword, pickedplayers, pickedplayers.length >= 2, game.choose_end_time);
     const post = await Slack.postMessage(game.slackchannelid, message);
     GameController.setChooseSummaryMessage(game.id, post.ts);
 }
@@ -547,7 +508,7 @@ export async function updateChooseSummaryMessage(game: Game) {
     const mainplayer = allplayers.find(p => p.id == game.currentplayerturn);
     const pickedplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id != undefined);
 
-    const message = getPlayerChooseSummaryMessage(game.currentturnidx, mainplayer.slack_user_id, game.currentkeyword, pickedplayers, pickedplayers.length >= 2);
+    const message = getPlayerChooseSummaryMessage(game.currentturnidx, mainplayer.slack_user_id, game.currentkeyword, pickedplayers, pickedplayers.length >= 2, game.choose_end_time);
     const post = await Slack.updateMessage(game.slackchannelid, game.lastchosesummarymessage, message);
     if (post.error) {
         // couldn't update, post as new
@@ -626,11 +587,17 @@ export async function otherPlayerChoose(game: Game, playerId: number, chosenGif:
 }
 
 export async function mainPlayerChoose(gameid: number, playerId: number, cardId: number, keyword: string) {
-    const playersToChoose = await PlayerController.setChosenGif(playerId, cardId, gameid);
+    await PlayerController.setChosenGif(playerId, cardId, gameid);
     const game = await GameController.setKeyword(gameid, keyword);
 
     // TODO confirmation or something
     await postNewChooseSummaryMessage(game);
+
+    const metadata: ChooseTimerMetadata = {
+        gameId: gameid,
+        turnIdx: game.currentturnidx
+    }
+    addTimerDueDate("chooseTimeUp", game.choose_end_time, JSON.stringify(metadata));
 
     //return PlayerChoose.promptPlayerChooses(game, playersToChoose.map(p => p.slack_user_id));
 }
@@ -658,6 +625,28 @@ export async function startGame(game: Game) {
     const allplayers = await PlayerController.getPlayersForGame( game.id )
     startNextTurn(game, allplayers[Math.floor(Math.random() * allplayers.length)]);
 }
+
+interface ChooseTimerMetadata {
+    gameId: number;
+    turnIdx: number;
+}
+export async function handleChooseTimeUp(metadata: string) {
+    const chooseMetadata = JSON.parse(metadata) as ChooseTimerMetadata;
+
+    const game = await GameController.getGameForId(chooseMetadata.gameId);
+    if (game == undefined || game.currentturnidx != chooseMetadata.turnIdx) {
+        console.log("This game doesn't exit or this has already been skipped");
+        return;
+    }
+
+    if (game.isreadytovote || game.isvotingcomplete) {
+        console.log("already moved on to voting")
+        return;
+    }
+
+    return startVoting(game);
+}
+
 
 /// debug 
 export async function debugRestartTurn(game: Game) {

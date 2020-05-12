@@ -160,6 +160,24 @@ function getMainPlayerChooseDialogue(cards: Gif[], gameId: number, playerId: num
         });
     }
 
+    if (showRefreshButton) {
+        message.blocks.push( {
+            type: "section",
+            text: {
+                type: "mrkdwn",
+                text: `I'm sick of these GIFs, give me some new ones`
+            },
+            accessory: {
+                type: "button",
+                text: {
+                    type: "plain_text",
+                    text: "Refresh GIFs"
+                },
+                action_id: CHOOSE_MAIN_PLAYER_REDEAL_CARDS_ACTION_ID
+            }
+        })
+    }
+
     message.blocks.push({
         block_id: CHOOSE_MAIN_PLAYER_CARD_BLOCK_ID,
         type: "input",
@@ -197,25 +215,6 @@ function getMainPlayerChooseDialogue(cards: Gif[], gameId: number, playerId: num
             max_length: 512
         }
     });
-
-    if (showRefreshButton) {
-        message.blocks.push( {
-            type: "section",
-            text: {
-                type: "mrkdwn",
-                text: `I'm sick of these GIFs, give me some new ones`
-            },
-            accessory: {
-                type: "button",
-                text: {
-                    type: "plain_text",
-                    text: "Refresh GIFs"
-                },
-                style: "primary",
-                action_id: CHOOSE_MAIN_PLAYER_REDEAL_CARDS_ACTION_ID
-            }
-        })
-    }
 
     return message;
 }
@@ -312,7 +311,6 @@ function getOtherPlayerChooseDialogue(cards: Gif[], keyword: string, mainPlayerS
                     type: "plain_text",
                     text: "Refresh GIFs"
                 },
-                style: "primary",
                 action_id: CHOOSE_OTHER_PLAYER_REDEAL_CARDS_ACTION_ID
             }
         })

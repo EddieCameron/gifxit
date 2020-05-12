@@ -5,6 +5,8 @@ import Player from "./models/player";
 
 const games: { [id: number]: Game } = {}
 
+const choosePhaseLengthMs = 1000 * 60 * 10;
+
 export async function getGameForId(id: number) {
     if (games[id] != undefined)
         return games[id];
@@ -82,11 +84,14 @@ export async function setKeyword(gameId: number, keyword: string) {
     if (keyword.length > 500)
         keyword = keyword.slice(0, 500);
     
+    const endTime = new Date(Date.now() + choosePhaseLengthMs);
+    
     game.currentkeyword = keyword;
+    game.choose_end_time = endTime;
     games[game.id] = game;
     await DB.queryNoReturn(
-        "UPDATE games SET currentkeyword = $1 WHERE id=$2",
-        keyword, game.id);
+        "UPDATE games SET currentkeyword = $1, choose_end_time = $2 WHERE id=$3",
+        keyword, endTime, game.id);
     return game;
 }
 

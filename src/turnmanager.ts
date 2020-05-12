@@ -71,17 +71,21 @@ export function getSmallCardSection(card: Gif, handNumber?: number) {
     } as SectionBlock;
 }
 
-export function getBigCardSection(card: Gif, handNumber: number) {
-    return {
-        type: "image",
-        title: {
+export function getBigCardSections(card: Gif, handNumber: number) {
+    return [{
+        type: "section",
+        text: {
             type: "plain_text",
             text: getEmojiForNumber(handNumber),
             emoji: true
-        },
-        image_url: card.url,
-        alt_text: "GIF " + handNumber.toString()
-    } as ImageBlock;
+        }
+    },
+        {
+            type: "image",
+            image_url: card.url,
+            alt_text: "GIF " + handNumber.toString()
+        } as ImageBlock
+    ];
 }
 
 function getTurnStartMessage(mainPlayerSlackId: string, game: Game) {
@@ -245,23 +249,23 @@ export function getPlayerChooseSummaryMessage(turnIdx: number, mainPlayerSlackId
             });
     
     if (showStartVoteButton) {
-        message.blocks.push({
-            type: "section",
-            text: {
-                type: "mrkdwn",
-                text: `Enough players have picked *${keyword}* GIFs. Wait for more or click to move on to voting`
-            },
-            accessory: {
-                type: "button",
-                text: {
-                    type: "plain_text",
-                    text: "VOTE!"
-                },
-                style: "danger",
-                value: turnIdx.toString(),
-                action_id: SKIP_ACTION
-            }
-        });
+        // message.blocks.push({
+        //     type: "section",
+        //     text: {
+        //         type: "mrkdwn",
+        //         text: `Enough players have picked *${keyword}* GIFs. Wait for more or click to move on to voting`
+        //     },
+        //     accessory: {
+        //         type: "button",
+        //         text: {
+        //             type: "plain_text",
+        //             text: "VOTE!"
+        //         },
+        //         style: "danger",
+        //         value: turnIdx.toString(),
+        //         action_id: SKIP_ACTION
+        //     }
+        // });
     }
     else {
         message.blocks.push(
@@ -332,7 +336,7 @@ function getVoteSummaryMessage( turnIdx: number, mainplayerslackid: string, vote
         message.blocks.push({ type: "divider" });
     }
 
-    message.blocks.push(getSkipVoteBlock(turnIdx));
+    // message.blocks.push(getSkipVoteBlock(turnIdx));
 
     return message;
 }

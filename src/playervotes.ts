@@ -4,7 +4,6 @@ import * as PlayerController from "./playercontroller"
 import * as GameController from "./gamecontroller"
 import Player from "./models/player";
 import * as TurnManager from "./turnmanager"
-import { getBigCardSection } from "./turnmanager";
 import { Option, View } from "@slack/web-api";
 import Gif from "./models/gif";
 import Game from "./models/game";
@@ -97,7 +96,8 @@ function getVoteDialogue(gifOptions: Gif[], keyword: string, mainPlayerSlackId: 
     for (let i = 0; i < gifOptions.length; i++) {
         const card = gifOptions[i];
 
-        dialogue.blocks.push( getBigCardSection(card, i + 1));
+        const sections = TurnManager.getBigCardSections(card, i + 1)
+        dialogue.blocks = dialogue.blocks.concat(sections);
         options.push({
             text: {
                 type: "plain_text",

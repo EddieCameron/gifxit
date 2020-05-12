@@ -149,8 +149,9 @@ function getMainPlayerChooseDialogue(cards: Gif[], gameId: number, playerId: num
     for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
         // add card description
-
-        message.blocks.push( TurnManager.getSmallCardSection(card, i + 1));
+        const sections = TurnManager.getBigCardSections(card, i + 1)
+        message.blocks = message.blocks.concat(sections);
+        message.blocks.push({ type: "divider" });
         options.push({
             text: {
                 type: "plain_text",
@@ -262,8 +263,9 @@ function getOtherPlayerChooseDialogue(cards: Gif[], keyword: string, mainPlayerS
     for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
         // add card description
-        message.blocks.push(TurnManager.getSmallCardSection(card, i + 1));
-        
+        const sections = TurnManager.getBigCardSections(card, i + 1)
+        message.blocks = message.blocks.concat(sections);
+        message.blocks.push({ type: "divider" });
         options.push({
             text: {
                 type: "plain_text",

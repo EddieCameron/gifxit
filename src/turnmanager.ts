@@ -440,6 +440,25 @@ export function getNextTurnPrompt(currentTurnIdx: number): Slack.SlashResponse {
     }
 }
 
+const notEnoughPlayersMessage: Slack.Message = {
+    text: `Not enough players 😅`,
+    blocks: [
+        {
+            type: "section",
+            text: {
+                type: "mrkdwn",
+                text: `Not enough players 😅`,
+            }
+        },
+        {
+            type: "image",
+            image_url: `https://media.giphy.com/media/VfyC5j7sR4cso/giphy.gif`,
+            alt_text: `:-(`
+
+        }
+    ]
+}
+
 async function showScoreSummary(game: Game, players: Player[] ) {
     const message = getScoreSummaryMessage(players);
     return Slack.postMessage(game.slackchannelid, message);
@@ -569,6 +588,11 @@ export async function startVoting(game: Game) {
     // all players chosen. Resolve turn!
     const allPlayers = await PlayerController.getPlayersForGame(game.id);
     const chosenPlayers = allPlayers.filter(p => p.chosen_gif_id != undefined);
+    if (chosenPlayers.length < 3) {
+        await Slack.postMessage(game.slackchannelid, notEnoughPlayersMessage );
+        await Slack.postMessage( game.slackchannelid, getNextTurnPrompt(game.currentturnidx ) );
+    }
+
     const chosenGifs = PlayerVotes.shuffle(await GifController.getCards(chosenPlayers.map(p => p.chosen_gif_id)));
     await GameController.startVote(game.id);
 
@@ -626,6 +650,7 @@ export async function startGame(game: Game) {
     startNextTurn(game, allplayers[Math.floor(Math.random() * allplayers.length)]);
 }
 
+// timers
 interface ChooseTimerMetadata {
     gameId: number;
     turnIdx: number;

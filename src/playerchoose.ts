@@ -292,7 +292,7 @@ function getOtherPlayerChooseDialogue(cards: Gif[], keyword: string, mainPlayerS
             "emoji": true
         },
         "element": {
-            type: "static_select",
+            type: "radio_buttons",
             action_id: CHOOSE_OTHER_PLAYER_CARD_BLOCK_ID + "_menu",
             options: options
         }
@@ -325,7 +325,7 @@ export async function handleStartMainPlayerChoose(payload: Slack.ActionPayload, 
 
     const game = await GameController.getGameForId(metadata.gameId);
     if (game == undefined || game.currentturnidx != metadata.turnIdx || game.currentkeyword != undefined) {
-        respond({ replace_original: true, text: "It's not your turn to choose a message" });
+        respond({ replace_original: false, response_type: "ephemeral", text: "It's not your turn to choose a message" });
         return;
     }
     if (metadata.playerId != game.currentplayerturn)

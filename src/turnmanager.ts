@@ -390,7 +390,7 @@ function getVotesAreInMessage(gifVotes: GifVote[], mainPlayerId: number ): Slack
 }
 
 function getScoreSummaryMessage(players: Player[], scoreDeltaPerPlayer: { [playerId: number]: number }) {
-    const scoreFields: MrkdwnElement[] = players.map(p => {
+    const scoreFields: MrkdwnElement[] = players.sort( (a,b) => b.score - a.score ).map(p => {
         const delta = scoreDeltaPerPlayer[p.id];
         return {
             type: "mrkdwn",

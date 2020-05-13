@@ -388,15 +388,10 @@ export function init(app: Application) {
             });
     });
 
-    app.get('/slack/auth/redirect', async (req, res) =>{
-        const uri = 'https://slack.com/api/oauth.access?code='
-                +req.query.code+
-                '&client_id='+process.env.SLACK_CLIENT_ID+
-                '&client_secret='+process.env.SLACK_CLIENT_SECRET
-        
+    app.get('/slack/auth/redirect', async (req, res) =>{        
         const result = await (new WebClient()).oauth.v2.access({
-            client_id: process.env.CLIENT_ID,
-            client_secret: process.env.CLIENT_SECRET,
+            client_id: process.env.SLACK_CLIENT_ID,
+            client_secret: process.env.SLACK_CLIENT_SECRET,
             code: req.query.code as string
         }) as AuthResponse;
         saveToken(result.team_id, result.access_token);

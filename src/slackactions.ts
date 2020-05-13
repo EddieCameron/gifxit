@@ -38,7 +38,7 @@ const createGameResponse: Slack.SlashResponse = {
 }
 
 export async function handleCreateGameAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void): Promise<void> {
-    const game = await GameManager.createGame(payload.channel.id, payload.user.id);
+    const game = await GameManager.createGame(payload.team.id, payload.channel.id, payload.user.id);
 
     await TurnManager.startGame(game);
 }

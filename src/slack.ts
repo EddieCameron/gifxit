@@ -1,16 +1,41 @@
 import { createEventAdapter } from '@slack/events-api'
 import { createMessageAdapter } from '@slack/interactive-messages'
 import { WebClient, View, MessageAttachment, KnownBlock, Block, Option, WebAPICallResult, PlainTextElement } from "@slack/web-api";
-import { Application, urlencoded, } from 'express';
+import { Application, urlencoded, json, } from 'express';
 
 import { ViewConstraints, ActionConstraints } from '@slack/interactive-messages/dist/adapter';
 import { timeout, TimeoutError } from 'promise-timeout';
+import bent from "bent";
+
+import * as DB from "./server"
 
 const slackSigningSecret = process.env.SLACK_SIGNING_SECRET;
 
 const slackEvents = createEventAdapter(slackSigningSecret);
 const slackInteractions = createMessageAdapter(slackSigningSecret);
-const slackWeb = new WebClient(process.env.SLACK_WEB_TOKEN);
+const slackWeb = new WebClient();
+
+interface SlackToken {
+    workspaceId: string,
+    token: string,
+}
+
+let tokensByWorkspace: Record<string, string>
+async function loadToken( workspaceId: string) {
+    if (tokensByWorkspace == undefined) {
+        const tokens = await DB.query<SlackToken>("SELECT * FROM slacktokens")
+        tokensByWorkspace = {}
+        for (const token of tokens) {
+            tokensByWorkspace[token.workspaceId] = token.token
+        }
+    }
+    return tokensByWorkspace[workspaceId];
+}
+
+async function saveToken(workspaceId: string, token: string) {
+    tokensByWorkspace[workspaceId] = token;
+    return DB.queryNoReturn("INSERT INTO slacktokens(workspace_id, token) VALUES( $1, $2 )", workspaceId, token);
+}
 
 interface User {
     id: string;
@@ -25,6 +50,11 @@ interface User {
         display_name?: string;
         image_original: string;
     };
+}
+
+interface AuthResponse extends WebAPICallResult {
+    access_token: string;
+    team_id: string;
 }
 
 interface ConversationOpenResponse extends WebAPICallResult {
@@ -71,34 +101,39 @@ export function setMessageEventHandler(handler: (event: MessageEvent) => void ) 
     messageEventHandler = handler;
 }
 
-export async function postMessage(channel_id: string, message: Message ) {
-    return ( await slackWeb.chat.postMessage( {channel: channel_id, text: message.text, blocks: message.blocks }) ) as ChatPostMessageResult;
+export async function postMessage(workspaceid: string, channel_id: string, message: Message) {
+    const token = await loadToken(workspaceid);
+    return ( await slackWeb.chat.postMessage( { token: token, channel: channel_id, text: message.text, blocks: message.blocks }) ) as ChatPostMessageResult;
 }
 
-export async function deleteMessage(channelId: string, ts: string) {
-    return await slackWeb.chat.delete( {channel: channelId, ts: ts} );
+export async function deleteMessage( workspaceid: string, channelId: string, ts: string) {
+    const token = await loadToken(workspaceid);
+    return await slackWeb.chat.delete( { token: token, channel: channelId, ts: ts} );
 }
 
-export function postEphemeralMessage(channel_id: string, user: string, message: Message ) {
-    return slackWeb.chat.postEphemeral( {channel: channel_id, user: user, text: message.text, blocks: message.blocks });
+export async function postEphemeralMessage(workspaceId: string, channel_id: string, user: string, message: Message ) {
+    const token = await loadToken(workspaceId);
+    return slackWeb.chat.postEphemeral( { token: token, channel: channel_id, user: user, text: message.text, blocks: message.blocks });
 }
 
-export function updateMessage(channel_id: string, ts: string, message: Message) {
-    return slackWeb.chat.update({ channel: channel_id, ts: ts, text: message.text, blocks: message.blocks });
+export async function updateMessage(workspaceId: string, channel_id: string, ts: string, message: Message) {
+    const token = await loadToken(workspaceId);
+    return slackWeb.chat.update({ token: token, channel: channel_id, ts: ts, text: message.text, blocks: message.blocks });
 }
 
-export async function sendPm(user: string, message: Message) {
+export async function sendPm( workspaceId: string, user: string, message: Message) {
     console.log(JSON.stringify(message));
     const response = await slackWeb.conversations.open({ users: user }) as ConversationOpenResponse
     if (!response.ok) {
         throw new Error("Failed to get PM channel: " + response.error );
     }
 
-    return postMessage(response.channel.id, message);
+    return postMessage( workspaceId, response.channel.id, message);
 }
 
-export async function getSlackUser(slackUserId: string) {
-    return await slackWeb.users.info({ user: slackUserId }) as UserResult;
+export async function getSlackUser( workspaceId: string, slackUserId: string) {
+    const token = await loadToken(workspaceId);
+    return await slackWeb.users.info({token: token, user: slackUserId }) as UserResult;
 }
 
 export function addViewSubmissionHandler(constraint: string | ViewConstraints, handler: ViewSubmissionHandler) {
@@ -130,20 +165,25 @@ export function setSlashHandler(handler: (payload: SlashPayload) => Promise<Slas
     slashHandler = handler;
 }
 
-export async function showModal(trigger_id: string, view: View) {
-    return slackWeb.views.open({ trigger_id: trigger_id, view: view });
+export async function showModal( workspaceId: string, trigger_id: string, view: View) {
+    const token = await loadToken(workspaceId);
+    return slackWeb.views.open({ token: token, trigger_id: trigger_id, view: view });
 }
 
-export async function pushModal(trigger_id: string, view: View) {
-    return slackWeb.views.push({ trigger_id: trigger_id, view: view });
+export async function pushModal(workspaceId: string, trigger_id: string, view: View) {
+    const token = await loadToken(workspaceId);
+    return slackWeb.views.push({ token: token, trigger_id: trigger_id, view: view });
 }
 
-export async function updateModal(view_id: string, view: View) {
-    return slackWeb.views.update({ view_id: view_id, view: view });
+export async function updateModal(workspaceId: string, view_id: string, view: View) {
+    const token = await loadToken(workspaceId);
+    return slackWeb.views.update({ token: token, view_id: view_id, view: view });
 }
 
-export async function findChannelWithName(channelName: string) {
-    const listResponse = await slackWeb.conversations.list();
+export async function findChannelWithName(workspaceId: string, channelName: string) {
+    const token = await loadToken(workspaceId);
+
+    const listResponse = await slackWeb.conversations.list({ token: token });
     console.log(listResponse);
     if (!listResponse.ok)
         throw listResponse.error;
@@ -152,8 +192,9 @@ export async function findChannelWithName(channelName: string) {
     return channels.find(c => c.name == channelName);
 }
 
-export async function createChannelWithName( name: string, isPrivate = false ) {
-    const createResponse = await slackWeb.conversations.create({ name: name, is_private: isPrivate });
+export async function createChannelWithName( workspaceId: string, name: string, isPrivate = false ) {
+    const token = await loadToken(workspaceId);
+    const createResponse = await slackWeb.conversations.create({ token: token, name: name, is_private: isPrivate });
     console.log(createResponse);
     if (!createResponse.ok)
         throw createResponse.error;
@@ -230,6 +271,10 @@ interface ViewClosedPayload {
 export interface ActionPayload {
     type: 'block_actions';
     trigger_id: string;
+    team: {
+        id: string;
+        domain: string;
+    };
     user: {
         id: string;
         username: string;
@@ -342,6 +387,21 @@ export function init(app: Application) {
                 }
             });
     });
+
+    app.get('/slack/auth/redirect', async (req, res) =>{
+        const uri = 'https://slack.com/api/oauth.access?code='
+                +req.query.code+
+                '&client_id='+process.env.CLIENT_ID+
+                '&client_secret='+process.env.CLIENT_SECRET+
+            '&redirect_uri=' + process.env.REDIRECT_URI
+        
+        const result = await (new WebClient()).oauth.v2.access({
+            client_id: process.env.CLIENT_ID,
+            client_secret: process.env.CLIENT_SECRET,
+            code: req.query.code as string
+        }) as AuthResponse;
+        saveToken(result.team_id, result.access_token);
+    })
 
     console.log("Slack init complete");
 }

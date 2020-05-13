@@ -39,8 +39,8 @@ export async function getGameForSlackChannel(channel: string) {
     return game;
 }
 
-export async function createGame(channel: string) {
-    const game = (await DB.query<Game>("INSERT INTO games(slackchannelid) VALUES($1) RETURNING *", channel))[0];
+export async function createGame(workspace: string, channel: string) {
+    const game = (await DB.query<Game>("INSERT INTO games(workspace_id, slackchannelid) VALUES($1, $2) RETURNING *", workspace, channel))[0];
     games[game.id] = game;
     return game;
 }

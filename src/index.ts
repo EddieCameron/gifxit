@@ -5,6 +5,7 @@ import * as SteadyTimer from "./steadytimer/steadytimer"
 import { handleChooseTimeUp, handleVoteTimeUp } from "./turnmanager";
 
 const app: express.Application = express();
+app.use(express.static('public'))
 
 Slack.init(app);
 SlackActions.init();

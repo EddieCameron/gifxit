@@ -391,9 +391,8 @@ export function init(app: Application) {
     app.get('/slack/auth/redirect', async (req, res) =>{
         const uri = 'https://slack.com/api/oauth.access?code='
                 +req.query.code+
-                '&client_id='+process.env.CLIENT_ID+
-                '&client_secret='+process.env.CLIENT_SECRET+
-            '&redirect_uri=' + process.env.REDIRECT_URI
+                '&client_id='+process.env.SLACK_CLIENT_ID+
+                '&client_secret='+process.env.SLACK_CLIENT_SECRET
         
         const result = await (new WebClient()).oauth.v2.access({
             client_id: process.env.CLIENT_ID,

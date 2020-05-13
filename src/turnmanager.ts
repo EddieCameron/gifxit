@@ -61,7 +61,7 @@ export function getSmallCardSection(card: Gif, handNumber?: number) {
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": getEmojiForNumber(handNumber)
+            "text": handNumber == undefined ? " " : getEmojiForNumber(handNumber)
         },
         "accessory": {
             "type": "image",
@@ -701,6 +701,13 @@ export async function handleVoteTimeUp(metadata: string) {
 export async function debugRestartTurn(game: Game) {
     const allplayers = await PlayerController.getPlayersForGame( game.id )
     startNextTurn(game, allplayers[Math.floor(Math.random() * allplayers.length)]);
+}
+
+export async function debugStartVote(game: Game) {
+    if (game == undefined)
+        return;
+    
+    startVoting(game);
 }
 
 export async function debugScoreTurn(game: Game) {

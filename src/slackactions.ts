@@ -205,6 +205,10 @@ export async function handleSlash(slashPayload: Slack.SlashPayload): Promise<Sla
             TurnManager.debugRestartTurn(game);
             return { response_type: "ephemeral", text: "Restarting turn..." };
         
+        case "startvote":
+            TurnManager.debugStartVote(game);
+            return { response_type: "ephemeral", text: "Voting..." };
+        
         case "score":
             TurnManager.debugScoreTurn(game);
             return {response_type: "ephemeral", text: "Scoring turn..." };

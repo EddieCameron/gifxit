@@ -20,8 +20,7 @@ interface SlackToken {
     token: string,
 }
 
-let tokensByWorkspace: Record<string, string>
-async function loadToken( workspaceId: string) {
+async function loadTokensIfNeeded() {
     if (tokensByWorkspace == undefined) {
         const tokens = await DB.query<SlackToken>("SELECT * FROM slacktokens")
         tokensByWorkspace = {}
@@ -29,10 +28,16 @@ async function loadToken( workspaceId: string) {
             tokensByWorkspace[token.workspaceId] = token.token
         }
     }
+}
+
+let tokensByWorkspace: Record<string, string>
+async function loadToken(workspaceId: string) {
+    await loadTokensIfNeeded();
     return tokensByWorkspace[workspaceId];
 }
 
 async function saveToken(workspaceId: string, token: string) {
+    await loadTokensIfNeeded();
     tokensByWorkspace[workspaceId] = token;
     return DB.queryNoReturn("INSERT INTO slacktokens(workspace_id, token) VALUES( $1, $2 )", workspaceId, token);
 }
@@ -394,6 +399,8 @@ export function init(app: Application) {
             client_secret: process.env.SLACK_CLIENT_SECRET,
             code: req.query.code as string
         }) as AuthResponse;
+
+        console.log(JSON.stringify(result));
         saveToken(result.team_id, result.access_token);
     })
 

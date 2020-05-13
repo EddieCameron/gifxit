@@ -295,10 +295,8 @@ function getPlayersReadyToVoteMessage(cards: Gif[], keyword: string): Slack.Mess
         ]
     }
 
-    let cardNumber = 1;
     for (const card of cards) {
-        message.blocks.push(getSmallCardSection(card, cardNumber));
-        cardNumber++;
+        message.blocks.push(getSmallCardSection(card));
     }
     return message
 }
@@ -639,9 +637,6 @@ export async function startNextTurn( game: Game, player: Player ) {
 
     // draw cards
     const allPlayers = await PlayerController.resetPlayersForNewTurn(game.id);
-    for (const player of allPlayers) {
-        await GifController.dealCardsToPlayer(game.id, player.id);
-    }
 
     // go to next player
     const nextplayer = await PlayerController.getPlayerWithId(game.currentplayerturn);

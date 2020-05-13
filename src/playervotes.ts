@@ -98,6 +98,7 @@ function getVoteDialogue(gifOptions: Gif[], keyword: string, mainPlayerSlackId: 
 
         const sections = TurnManager.getBigCardSections(card, i + 1)
         dialogue.blocks = dialogue.blocks.concat(sections);
+        dialogue.blocks.push({ type: "divider" });
         options.push({
             text: {
                 type: "plain_text",

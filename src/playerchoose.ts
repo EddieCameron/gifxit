@@ -331,7 +331,7 @@ export async function handleStartMainPlayerChoose(payload: Slack.ActionPayload, 
     if (metadata.playerId != game.currentplayerturn)
         throw new Error("Not the main player but tried to choose a card");
     
-    const cards = await GifController.getPlayerCards(metadata.gameId, metadata.playerId);
+    const cards = await GifController.dealCardsToPlayer(metadata.gameId, metadata.playerId);
     const player = await PlayerController.getPlayerWithId(game.currentplayerturn);
 
     const modal = getMainPlayerChooseDialogue(cards, game.id, metadata.playerId, game.currentturnidx, player.last_refresh_on_turn < game.currentturnidx );
@@ -408,7 +408,7 @@ export async function handleStartOtherPlayerChoose(payload: Slack.ActionPayload,
         return;
     }
     
-    const cards = await GifController.getPlayerCards(game.id, player.id);
+    const cards = await GifController.dealCardsToPlayer(game.id, player.id);
     const mainplayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
 
     const modal = getOtherPlayerChooseDialogue(cards, game.currentkeyword, mainplayer.slack_user_id, game.id, player.id, game.currentturnidx,player.last_refresh_on_turn < game.currentturnidx );

@@ -59,7 +59,9 @@ interface User {
 
 interface AuthResponse extends WebAPICallResult {
     access_token: string;
-    team_id: string;
+    team: {
+        id: string;
+    }
 }
 
 interface ConversationOpenResponse extends WebAPICallResult {
@@ -401,7 +403,7 @@ export function init(app: Application) {
         }) as AuthResponse;
 
         console.log(JSON.stringify(result));
-        saveToken(result.team_id, result.access_token);
+        saveToken(result.team.id, result.access_token);
     })
 
     console.log("Slack init complete");

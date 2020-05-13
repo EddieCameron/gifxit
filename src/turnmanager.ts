@@ -184,6 +184,12 @@ export function getPlayerChooseSummaryMessage(turnIdx: number, mainPlayerSlackId
                 }
             },
             {
+                type: "image",
+                image_url: `https://media.giphy.com/media/ghBHbA9qUIHZFYTqjw/giphy.gif`,
+                alt_text: `:bell:`
+            }
+            ,
+            {
                 type: "section",
                 text: {
                     type: "mrkdwn",
@@ -498,7 +504,7 @@ export async function scoreVotes(game: Game) {
 
     // actually update
     for (const gifVote of gifVotes) {
-        await PlayerController.addPoints(gifVote.chosenByPlayer.id, playerPoints[gifVote.chosenByPlayer.id]);
+        gifVote.chosenByPlayer = await PlayerController.addPoints(gifVote.chosenByPlayer.id, playerPoints[gifVote.chosenByPlayer.id]);
     }
 
     const voteSummaryMessage = getVotesAreInMessage(gifVotes, game.currentplayerturn);

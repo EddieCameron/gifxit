@@ -134,7 +134,7 @@ export function getPlayerVotePrompt(game: Game, mainPlayer: Player, player: Play
 
 export async function promptPlayerVote(game: Game, mainPlayer: Player, player: Player) {
     const message = getPlayerVotePrompt(game, mainPlayer, player);
-    await Slack.postEphemeralMessage(game.workspaceid, game.slackchannelid, player.slack_user_id, message);
+    await Slack.postEphemeralMessage(game.workspace_id, game.slackchannelid, player.slack_user_id, message);
 }
 
 export async function promptPlayerVotes(game: Game, mainPlayer: Player, players: Player[] ) {
@@ -176,7 +176,7 @@ export async function handleOpenPlayerVoteDialogue(payload: Slack.ActionPayload,
     const mainplayer = allPlayers.find(p => p.id == game.currentplayerturn);
 
     const modal = getVoteDialogue(gifs, game.currentkeyword, mainplayer.slack_user_id, game.id, player.id, game.currentturnidx);
-    const open = await Slack.showModal(game.workspaceid, payload.trigger_id, modal);
+    const open = await Slack.showModal(game.workspace_id, payload.trigger_id, modal);
     if (!open.ok) {
         respond({ response_type: "ephemeral", replace_original: false, text: "Something went wrong with Slack. Try again?" });
     }

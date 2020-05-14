@@ -508,13 +508,13 @@ export async function scoreVotes(game: Game) {
     }
 
     const voteSummaryMessage = getVotesAreInMessage(gifVotes, game.currentplayerturn);
-    await Slack.postMessage(game.workspaceid, game.slackchannelid, voteSummaryMessage);
+    await Slack.postMessage(game.workspace_id, game.slackchannelid, voteSummaryMessage);
 
     // show updated scores for recent players
     const scoreSummaryMessage = getScoreSummaryMessage(gifVotes.map(v => v.chosenByPlayer), playerPoints);
-    await Slack.postMessage(game.workspaceid, game.slackchannelid, scoreSummaryMessage);
+    await Slack.postMessage(game.workspace_id, game.slackchannelid, scoreSummaryMessage);
 
-    await Slack.postMessage( game.workspaceid, game.slackchannelid, getNextTurnPrompt(game.currentturnidx ) );
+    await Slack.postMessage( game.workspace_id, game.slackchannelid, getNextTurnPrompt(game.currentturnidx ) );
 }
 
 export async function postNewChooseSummaryMessage(game: Game) {
@@ -523,7 +523,7 @@ export async function postNewChooseSummaryMessage(game: Game) {
     const pickedplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id != undefined);
 
     const message = getPlayerChooseSummaryMessage(game.currentturnidx, mainplayer.slack_user_id, game.currentkeyword, pickedplayers, pickedplayers.length >= 2, game.choose_end_time);
-    const post = await Slack.postMessage(game.workspaceid, game.slackchannelid, message);
+    const post = await Slack.postMessage(game.workspace_id, game.slackchannelid, message);
     GameController.setChooseSummaryMessage(game.id, post.ts);
 }
 
@@ -533,10 +533,10 @@ export async function updateChooseSummaryMessage(game: Game) {
     const pickedplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id != undefined);
 
     const message = getPlayerChooseSummaryMessage(game.currentturnidx, mainplayer.slack_user_id, game.currentkeyword, pickedplayers, pickedplayers.length >= 2, game.choose_end_time);
-    const post = await Slack.updateMessage(game.workspaceid, game.slackchannelid, game.lastchosesummarymessage, message);
+    const post = await Slack.updateMessage(game.workspace_id, game.slackchannelid, game.lastchosesummarymessage, message);
     if (post.error) {
         // couldn't update, post as new
-        const post = await Slack.postMessage(game.workspaceid, game.slackchannelid, message);
+        const post = await Slack.postMessage(game.workspace_id, game.slackchannelid, message);
         GameController.setChooseSummaryMessage(game.id, post.ts);
     }
 }
@@ -548,7 +548,7 @@ export async function postNewVoteSummaryMessage(game: Game) {
     const remainingplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id != undefined && p.voted_gif_id == undefined);
 
     const message = getVoteSummaryMessage(game.currentturnidx, mainplayer.slack_user_id, votedplayers, remainingplayers);
-    const post = await Slack.postMessage(game.workspaceid, game.slackchannelid, message);
+    const post = await Slack.postMessage(game.workspace_id, game.slackchannelid, message);
     GameController.setVoteSummaryMessage(game.id, post.ts);
 }
 
@@ -559,10 +559,10 @@ export async function updateVoteSummaryMessage(game: Game) {
     const remainingplayers = allplayers.filter(p => p.id != game.currentplayerturn && p.chosen_gif_id != undefined && p.voted_gif_id == undefined);
 
     const message = getVoteSummaryMessage(game.currentturnidx, mainplayer.slack_user_id, votedplayers, remainingplayers);
-    const post = await Slack.updateMessage(game.workspaceid, game.slackchannelid, game.lastvotesummarymessage, message);
+    const post = await Slack.updateMessage(game.workspace_id, game.slackchannelid, game.lastvotesummarymessage, message);
     if (post.error) {
         // couldn't update, post as new
-        const post = await Slack.postMessage(game.workspaceid, game.slackchannelid, message);
+        const post = await Slack.postMessage(game.workspace_id, game.slackchannelid, message);
         GameController.setVoteSummaryMessage(game.id, post.ts);
     }
 }
@@ -594,15 +594,15 @@ export async function startVoting(game: Game) {
     const allPlayers = await PlayerController.getPlayersForGame(game.id);
     const chosenPlayers = allPlayers.filter(p => p.chosen_gif_id != undefined);
     if (chosenPlayers.length < 3) {
-        await Slack.postMessage(game.workspaceid, game.slackchannelid, notEnoughPlayersMessage );
-        await Slack.postMessage(game.workspaceid, game.slackchannelid, getNextTurnPrompt(game.currentturnidx));
+        await Slack.postMessage(game.workspace_id, game.slackchannelid, notEnoughPlayersMessage );
+        await Slack.postMessage(game.workspace_id, game.slackchannelid, getNextTurnPrompt(game.currentturnidx));
         return;
     }
 
     const chosenGifs = PlayerVotes.shuffle(await GifController.getCards(chosenPlayers.map(p => p.chosen_gif_id)));
     await GameController.startVote(game.id);
 
-    await Slack.postMessage(game.workspaceid, game.slackchannelid, getPlayersReadyToVoteMessage( chosenGifs, game.currentkeyword));
+    await Slack.postMessage(game.workspace_id, game.slackchannelid, getPlayersReadyToVoteMessage( chosenGifs, game.currentkeyword));
     await postNewVoteSummaryMessage(game);
 
     const mainPlayer = allPlayers.find(p => p.id == game.currentplayerturn);
@@ -647,7 +647,7 @@ export async function startNextTurn( game: Game, player: Player ) {
     // go to next player
     const nextplayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
     const startTurnMessage = getTurnStartMessage(nextplayer.slack_user_id, game);
-    await Slack.postMessage( game.workspaceid, game.slackchannelid, startTurnMessage )
+    await Slack.postMessage( game.workspace_id, game.slackchannelid, startTurnMessage )
 
     // prompt main player
     return PlayerChoose.promptMainPlayerTurn(nextplayer.slack_user_id, game, nextplayer.id, game.currentturnidx);

@@ -34,7 +34,7 @@ function getGameInfoMessage(players: Player[]): Slack.Message {
 
 async function printGameInfoMessage(game: Game, players: Player[]) {
     const message = getGameInfoMessage(players);
-    return Slack.postMessage(game.workspaceid, game.slackchannelid, message);
+    return Slack.postMessage(game.workspace_id, game.slackchannelid, message);
 }
 
 export async function createGame( slackWorkspace: string, slackChannel: string, slackUserId: string ) {

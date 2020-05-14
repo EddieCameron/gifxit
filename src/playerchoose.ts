@@ -335,7 +335,7 @@ export async function handleStartMainPlayerChoose(payload: Slack.ActionPayload, 
     const player = await PlayerController.getPlayerWithId(game.currentplayerturn);
 
     const modal = getMainPlayerChooseDialogue(cards, game.id, metadata.playerId, game.currentturnidx, player.last_refresh_on_turn < game.currentturnidx );
-    const open = await Slack.showModal(game.workspaceid, payload.trigger_id, modal);
+    const open = await Slack.showModal(game.workspace_id, payload.trigger_id, modal);
     if (!open.ok) {
         respond({ response_type: "ephemeral", replace_original: false, text: "Something went wrong with Slack. Try again?" });
     }
@@ -379,11 +379,11 @@ export async function handleMainPlayerDialogueSubmit(payload: Slack.ViewSubmissi
 }
 
 export async function promptMainPlayerTurn(slackId: string, game: Game, playerId: number, turnIdx: number) {
-    return Slack.postEphemeralMessage(game.workspaceid, game.slackchannelid, slackId, getMainPlayerChoosePromptMessage( game.id, playerId, turnIdx));
+    return Slack.postEphemeralMessage(game.workspace_id, game.slackchannelid, slackId, getMainPlayerChoosePromptMessage( game.id, playerId, turnIdx));
 }
 
 export async function promptOtherPlayerChoose(slackId: string, game: Game) {
-    return Slack.postEphemeralMessage(game.workspaceid, game.slackchannelid, slackId, getOtherPlayerChoosePrompt( game.currentturnidx ))
+    return Slack.postEphemeralMessage(game.workspace_id, game.slackchannelid, slackId, getOtherPlayerChoosePrompt( game.currentturnidx ))
 }
 
 export async function handleStartOtherPlayerChoose(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
@@ -412,7 +412,7 @@ export async function handleStartOtherPlayerChoose(payload: Slack.ActionPayload,
     const mainplayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
 
     const modal = getOtherPlayerChooseDialogue(cards, game.currentkeyword, mainplayer.slack_user_id, game.id, player.id, game.currentturnidx,player.last_refresh_on_turn < game.currentturnidx );
-    const open = await Slack.showModal(game.workspaceid, payload.trigger_id, modal);
+    const open = await Slack.showModal(game.workspace_id, payload.trigger_id, modal);
     if (!open.ok) {
         respond({ response_type: "ephemeral", replace_original: false, text: "Something went wrong with Slack. Try again?" });
     }
@@ -448,7 +448,7 @@ export async function handleOtherPlayerDialogueSubmit(payload: Slack.ViewSubmiss
 
 
     await TurnManager.otherPlayerChoose(game, metadata.playerId, chosenCardId);
-    await Slack.postEphemeralMessage(game.workspaceid, game.slackchannelid, player.slack_user_id, { text: "👌 GIF PICKED" });
+    await Slack.postEphemeralMessage(game.workspace_id, game.slackchannelid, player.slack_user_id, { text: "👌 GIF PICKED" });
 
     return undefined;
 }
@@ -472,7 +472,7 @@ export async function handleMainPlayerRedealAction(payload: Slack.ActionPayload,
 
     const modal = getMainPlayerChooseDialogue(newGifs, game.id, metadata.playerId, game.currentturnidx, false );
     console.log("modal refreshed: " + JSON.stringify(modal));
-    await Slack.updateModal(game.workspaceid, payload.container.view_id, modal);
+    await Slack.updateModal(game.workspace_id, payload.container.view_id, modal);
 }
 
 export async function handleOtherPlayerRedealAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
@@ -494,5 +494,5 @@ export async function handleOtherPlayerRedealAction(payload: Slack.ActionPayload
     const mainPlayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
     const modal = getOtherPlayerChooseDialogue(newGifs, game.currentkeyword, mainPlayer.slack_user_id, game.id, player.id, game.currentturnidx, false );
     
-    await Slack.updateModal(game.workspaceid, payload.container.view_id, modal);
+    await Slack.updateModal(game.workspace_id, payload.container.view_id, modal);
 }

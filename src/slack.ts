@@ -20,6 +20,7 @@ interface SlackToken {
     token: string,
 }
 
+let tokensByWorkspace: Record<string, string>
 async function loadTokensIfNeeded() {
     if (tokensByWorkspace == undefined) {
         const tokens = await DB.query<SlackToken>("SELECT * FROM slacktokens")
@@ -30,9 +31,9 @@ async function loadTokensIfNeeded() {
     }
 }
 
-let tokensByWorkspace: Record<string, string>
 async function loadToken(workspaceId: string) {
     await loadTokensIfNeeded();
+    console.log(JSON.stringify(tokensByWorkspace));
     return tokensByWorkspace[workspaceId];
 }
 

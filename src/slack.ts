@@ -16,7 +16,7 @@ const slackInteractions = createMessageAdapter(slackSigningSecret);
 const slackWeb = new WebClient();
 
 interface SlackToken {
-    workspaceId: string,
+    workspace_id: string,
     token: string,
 }
 
@@ -26,7 +26,7 @@ async function loadTokensIfNeeded() {
         const tokens = await DB.query<SlackToken>("SELECT * FROM slacktokens")
         tokensByWorkspace = {}
         for (const token of tokens) {
-            tokensByWorkspace[token.workspaceId] = token.token
+            tokensByWorkspace[token.workspace_id] = token.token
         }
     }
 }

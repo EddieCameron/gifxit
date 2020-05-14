@@ -1,6 +1,6 @@
 export default interface Game {
     id: number;
-    workspaceid: string;
+    workspace_id: string;
     slackchannelid: string;
 
     currentplayerturn: number;

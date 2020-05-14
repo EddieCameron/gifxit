@@ -255,23 +255,23 @@ export function getPlayerChooseSummaryMessage(turnIdx: number, mainPlayerSlackId
             });
     
     if (showStartVoteButton) {
-        // message.blocks.push({
-        //     type: "section",
-        //     text: {
-        //         type: "mrkdwn",
-        //         text: `Enough players have picked *${keyword}* GIFs. Wait for more or click to move on to voting`
-        //     },
-        //     accessory: {
-        //         type: "button",
-        //         text: {
-        //             type: "plain_text",
-        //             text: "VOTE!"
-        //         },
-        //         style: "danger",
-        //         value: turnIdx.toString(),
-        //         action_id: SKIP_ACTION
-        //     }
-        // });
+        message.blocks.push({
+            type: "section",
+            text: {
+                type: "mrkdwn",
+                text: `Enough players have picked *${keyword}* GIFs. Wait for more or click to move on to voting`
+            },
+            accessory: {
+                type: "button",
+                text: {
+                    type: "plain_text",
+                    text: "VOTE!"
+                },
+                style: "danger",
+                value: turnIdx.toString(),
+                action_id: SKIP_ACTION
+            }
+        });
     }
     else {
         message.blocks.push(
@@ -340,7 +340,7 @@ function getVoteSummaryMessage( turnIdx: number, mainplayerslackid: string, vote
         message.blocks.push({ type: "divider" });
     }
 
-    // message.blocks.push(getSkipVoteBlock(turnIdx));
+    message.blocks.push(getSkipVoteBlock(turnIdx));
 
     return message;
 }

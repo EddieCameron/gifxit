@@ -110,6 +110,7 @@ export function setMessageEventHandler(handler: (event: MessageEvent) => void ) 
 
 export async function postMessage(workspaceid: string, channel_id: string, message: Message) {
     const token = await loadToken(workspaceid);
+    console.log("token " + token + " channel " + channel_id);
     return ( await slackWeb.chat.postMessage( { token: token, channel: channel_id, text: message.text, blocks: message.blocks }) ) as ChatPostMessageResult;
 }
 
@@ -404,6 +405,8 @@ export function init(app: Application) {
 
         console.log(JSON.stringify(result));
         saveToken(result.team.id, result.access_token);
+
+        res.send("Installed!")
     })
 
     console.log("Slack init complete");

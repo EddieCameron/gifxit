@@ -5,12 +5,18 @@ import * as PlayerChoose from "./playerchoose"
 import * as PlayerVotes from "./playervotes"
 import * as Slack from "./slack"
 import Gif from "./models/gif";
-import { MrkdwnElement, ImageBlock, SectionBlock } from "@slack/web-api"
+import { MrkdwnElement, ImageBlock, SectionBlock, Block, KnownBlock } from "@slack/web-api"
 import GifVote from "./models/gifvotes"
 import Game from "./models/game"
 import Player from "./models/player"
 import { DialogueMetadata } from "./gamemanager"
 import { addTimer, addTimerDueDate } from "./steadytimer/steadytimer"
+
+const bellGifs = [
+    "https://media.giphy.com/media/XF2WX3PiYOH8Q/giphy.gif",
+    "https://media.giphy.com/media/ghBHbA9qUIHZFYTqjw/giphy.gif",
+    'https://media.giphy.com/media/WREjsSwdm31MwTDW34/giphy.gif'
+]
 
 export function getEmojiForNumber(num: number) {
     switch (num) {
@@ -71,21 +77,27 @@ export function getSmallCardSection(card: Gif, handNumber?: number) {
     } as SectionBlock;
 }
 
-export function getBigCardSections(card: Gif, handNumber: number) {
-    return [{
-        type: "section",
-        text: {
-            type: "plain_text",
-            text: getEmojiForNumber(handNumber),
-            emoji: true
-        }
-    },
+export function getBigCardSections(card: Gif, handNumber?: number) {
+    const blocks: KnownBlock[] = [];
+    if (handNumber != undefined) {
+        blocks.push({
+            type: "section",
+            text: {
+                type: "plain_text",
+                text: getEmojiForNumber(handNumber),
+                emoji: true
+            }
+        });
+    }
+
+    blocks.push(
         {
             type: "image",
             image_url: card.url,
-            alt_text: "GIF " + handNumber.toString()
-        } as ImageBlock
-    ];
+            alt_text: "GIF " + (handNumber == undefined ? "" : handNumber.toString())
+        }
+    );
+    return blocks;
 }
 
 function getTurnStartMessage(mainPlayerSlackId: string, game: Game) {
@@ -185,7 +197,7 @@ export function getPlayerChooseSummaryMessage(turnIdx: number, mainPlayerSlackId
             },
             {
                 type: "image",
-                image_url: `https://media.giphy.com/media/ghBHbA9qUIHZFYTqjw/giphy.gif`,
+                image_url: bellGifs[Math.floor(Math.random() * bellGifs.length)],
                 alt_text: `:bell:`
             }
             ,
@@ -302,7 +314,7 @@ function getPlayersReadyToVoteMessage(cards: Gif[], keyword: string): Slack.Mess
     }
 
     for (const card of cards) {
-        message.blocks.push(getSmallCardSection(card));
+        message.blocks = message.blocks.concat(getBigCardSections(card));
     }
     return message
 }
@@ -585,7 +597,8 @@ export async function playerVote(gameId: number, playerId: number, gifId: number
     }
     else {
         // tell everyone that choice was made, show remainign players
-        updateVoteSummaryMessage(game);
+        await updateVoteSummaryMessage(game);
+        await Slack.postEphemeralMessage(game.workspace_id, game.slackchannelid, chosenPlayer.slack_user_id, { text: "👌 VOTED" });
     }
 }
 

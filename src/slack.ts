@@ -33,7 +33,6 @@ async function loadTokensIfNeeded() {
 
 async function loadToken(workspaceId: string) {
     await loadTokensIfNeeded();
-    console.log(JSON.stringify(tokensByWorkspace));
     return tokensByWorkspace[workspaceId];
 }
 
@@ -111,7 +110,6 @@ export function setMessageEventHandler(handler: (event: MessageEvent) => void ) 
 
 export async function postMessage(workspaceid: string, channel_id: string, message: Message) {
     const token = await loadToken(workspaceid);
-    console.log("token " + token + " channel " + channel_id);
     return ( await slackWeb.chat.postMessage( { token: token, channel: channel_id, text: message.text, blocks: message.blocks }) ) as ChatPostMessageResult;
 }
 
@@ -164,6 +162,8 @@ export function addActionHandler(constraint: string | ActionConstraints, handler
             .catch(e => {
                 console.error(e);
                 respond({
+                    response_type: "ephemeral",
+                    replace_original: false,
                     text: "Something terrible happened:" + e
                 });
             });

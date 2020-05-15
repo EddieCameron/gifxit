@@ -329,14 +329,16 @@ export async function handleStartMainPlayerChoose(payload: Slack.ActionPayload, 
         return;
     }
     if (metadata.playerId != game.currentplayerturn)
-        throw new Error("Not the main player but tried to choose a card");
+        respond({ response_type: "ephemeral", replace_original: false, text: "It's not your turn to choose a message" });
     
     const cards = await GifController.dealCardsToPlayer(metadata.gameId, metadata.playerId);
     const player = await PlayerController.getPlayerWithId(game.currentplayerturn);
 
-    const modal = getMainPlayerChooseDialogue(cards, game.id, metadata.playerId, game.currentturnidx, player.last_refresh_on_turn < game.currentturnidx );
-    const open = await Slack.showModal(game.workspace_id, payload.trigger_id, modal);
-    if (!open.ok) {
+    const modal = getMainPlayerChooseDialogue(cards, game.id, metadata.playerId, game.currentturnidx, player.last_refresh_on_turn < game.currentturnidx);
+    try {
+        await Slack.showModal(game.workspace_id, payload.trigger_id, modal);
+    }
+    catch (e) {
         respond({ response_type: "ephemeral", replace_original: false, text: "Something went wrong with Slack. Try again?" });
     }
     // TODO delete message if modal is cancelled
@@ -411,10 +413,12 @@ export async function handleStartOtherPlayerChoose(payload: Slack.ActionPayload,
     const cards = await GifController.dealCardsToPlayer(game.id, player.id);
     const mainplayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
 
-    const modal = getOtherPlayerChooseDialogue(cards, game.currentkeyword, mainplayer.slack_user_id, game.id, player.id, game.currentturnidx,player.last_refresh_on_turn < game.currentturnidx );
-    const open = await Slack.showModal(game.workspace_id, payload.trigger_id, modal);
-    if (!open.ok) {
-        respond({ response_type: "ephemeral", replace_original: false, text: "Something went wrong with Slack. Try again?" });
+    const modal = getOtherPlayerChooseDialogue(cards, game.currentkeyword, mainplayer.slack_user_id, game.id, player.id, game.currentturnidx, player.last_refresh_on_turn < game.currentturnidx);
+    try {
+        await Slack.showModal(game.workspace_id, payload.trigger_id, modal);
+    }
+    catch(e) {
+        respond({ response_type: "ephemeral", replace_original: false, text: `Something went wrong with Slack. (${e}) Try again?` });
     }
 
     // TODO delete message if modal is cancelled

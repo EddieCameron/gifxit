@@ -31,7 +31,8 @@ async function fillPlayerHand(currentGifs: Gif[], gameId: number, playerId: numb
     if (numCardsToDeal > 0) {
         const allGifs = await DB.query<Gif>("SELECT * FROM gifs");
         const thisGameGifs = await DB.query<GameGif>("SELECT * FROM game_gifs WHERE game_id=$1", gameId);
-
+        const chosenGifs = await DB.query<number>("SELECT chosen_gif_id FROM players WHERE game_id=$1", gameId)
+        
         for (let i = 0; i < numCardsToDeal; i++) {
             for (let attempts = 0; attempts < 100; attempts++) {
                 // try picking a new random card
@@ -49,8 +50,15 @@ async function fillPlayerHand(currentGifs: Gif[], gameId: number, playerId: numb
                 }
                 
                 if (thisGameGifs.length < allGifs.length) {
-                    // check that gif hasn't already been used
+                    // check that gif hasn't already been dealt
                     if (thisGameGifs.some(g => g.gif_id == nextCard.id)) {
+                        continue;   // try again
+                    }
+                }
+                
+                if (chosenGifs.length < allGifs.length) {
+                    // check that gif hasn't already been chosen
+                    if (chosenGifs.some(g => g == nextCard.id)) {
                         continue;   // try again
                     }
                 }

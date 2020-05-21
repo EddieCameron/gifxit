@@ -482,15 +482,7 @@ function getVotesAreInMessage(gifVotes: GifVote[], mainPlayerId: number ): Slack
 }
 
 function getScoreSummaryMessage(players: Player[], scoreDeltaPerPlayer: { [playerId: number]: number }) {
-    const scoreFields: MrkdwnElement[] = players.sort( (a,b) => b.score - a.score ).map(p => {
-        const delta = scoreDeltaPerPlayer[p.id];
-        return {
-            type: "mrkdwn",
-            text: `<@${p.slack_user_id}> ${p.score - delta} + ${delta} = *${p.score}*`
-        };
-    });
-
-    return {
+    const message = {
         text: `Scores`,
         blocks: [
             {
@@ -498,11 +490,25 @@ function getScoreSummaryMessage(players: Player[], scoreDeltaPerPlayer: { [playe
                 text: {
                     type: "mrkdwn",
                     text: `Updated Scores`
-                },
-                fields: scoreFields
+                }
             },
         ]
     }
+
+    const scorePlayers = players.sort((a, b) => b.score - a.score);
+    for (const playerscore of scorePlayers) {
+        const delta = scoreDeltaPerPlayer[playerscore.id];
+        message.blocks.push({
+            type: "section",
+            text: {
+                type: "mrkdwn",
+                text: `<@${playerscore.slack_user_id}> ${playerscore.score - delta} + ${delta} = *${playerscore.score}*`
+            }
+        }
+        );
+    }
+
+    return message;
 }
 
 export const NEXT_TURN_CALLBACK = "start_next_turn";

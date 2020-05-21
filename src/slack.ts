@@ -16,8 +16,8 @@ const slackInteractions = createMessageAdapter(slackSigningSecret);
 const slackWeb = new WebClient();
 
 interface SlackToken {
-    workspace_id: string,
-    token: string,
+    workspace_id: string;
+    token: string;
 }
 
 let tokensByWorkspace: Record<string, string>
@@ -65,7 +65,7 @@ interface AuthResponse extends WebAPICallResult {
     access_token: string;
     team: {
         id: string;
-    }
+    };
 }
 
 interface ConversationOpenResponse extends WebAPICallResult {

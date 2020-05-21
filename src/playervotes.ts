@@ -176,9 +176,11 @@ export async function handleOpenPlayerVoteDialogue(payload: Slack.ActionPayload,
     const mainplayer = allPlayers.find(p => p.id == game.currentplayerturn);
 
     const modal = getVoteDialogue(gifs, game.currentkeyword, mainplayer.slack_user_id, game.id, player.id, game.currentturnidx);
-    const open = await Slack.showModal(game.workspace_id, payload.trigger_id, modal);
-    if (!open.ok) {
-        respond({ response_type: "ephemeral", replace_original: false, text: "Something went wrong with Slack. Try again?" });
+    try {
+        return await Slack.showModal(game.workspace_id, payload.trigger_id, modal);
+    }
+    catch( error ) {
+        respond({ response_type: "ephemeral", replace_original: false, text: "Something went wrong with Slack. Try again? " + error } );
     }
 
     // TODO delete message if modal is cancelled

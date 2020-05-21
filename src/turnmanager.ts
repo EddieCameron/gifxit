@@ -19,31 +19,51 @@ const bellGifs = [
 ]
 
 export function getEmojiForNumber(num: number) {
-    switch (num) {
-        case 0:
-            return "0️⃣";
-        case 1:
-            return "1️⃣"
-        case 2:
-            return "2️⃣"
-        case 3:
-            return "3️⃣"
-        case 4:
-            return "4️⃣"
-        case 5:
-            return "5️⃣"
-        case 6:
-            return "6️⃣"
-        case 7:
-            return "7️⃣"
-        case 8:
-            return "8️⃣"
-        case 9:
-            return "9️⃣"
+    if (num == undefined)
+        return " ";
     
-        default:
-            "";
+    const stringNum = num.toString();
+    let emojiString = "";
+    for (let index = 0; index < stringNum.length; index++) {
+        const digit = stringNum[index];
+        switch (digit) {
+            case "0":
+                emojiString += "0️⃣";
+                break;
+            case "1":
+                emojiString += "1️⃣";
+                break;
+            case "2":
+                emojiString += "2️⃣";
+                break;
+            case "3":
+                emojiString += "3️⃣";
+                break;
+            case "4":
+                emojiString += "4️⃣";
+                break;
+            case "5":
+                emojiString += "5️⃣";
+                break;
+            case "6":
+                emojiString += "6️⃣";
+                break;
+            case "7":
+                emojiString += "7️⃣";
+                break;
+            case "8":
+                emojiString += "8️⃣";
+                break;
+            case "9":
+                emojiString += "9️⃣";
+                break;
+            
+            default:
+                emojiString += " ";
+                break;
+            }
     }
+    return emojiString;
 }
 
 export function getTextList(listItems: string[]) {

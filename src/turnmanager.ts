@@ -72,7 +72,7 @@ export function getSmallCardSection(card: Gif, handNumber?: number) {
         "accessory": {
             "type": "image",
             "image_url": card.url,
-            "alt_text": "GIF " + (handNumber == undefined ? "" : handNumber.toString())
+            "alt_text": "Gif " + (handNumber == undefined ? "" : handNumber.toString())
         }
     } as SectionBlock;
 }
@@ -94,7 +94,7 @@ export function getBigCardSections(card: Gif, handNumber?: number) {
         {
             type: "image",
             image_url: card.url,
-            alt_text: "GIF " + (handNumber == undefined ? "" : handNumber.toString())
+            alt_text: "Gif " + (handNumber == undefined ? "" : handNumber.toString())
         }
     );
     return blocks;
@@ -131,11 +131,30 @@ function getTurnStartMessage(mainPlayerSlackId: string, game: Game) {
                     },
                     style: "danger",
                     value: JSON.stringify(metadata),
-                    action_id: PlayerChoose.MAIN_PLAYER_PASS_ACTION_ID
+                    action_id: PlayerChoose.MAIN_PLAYER_PASS_ACTION_ID,
+                    confirm: {
+                        title: {
+                            type: "plain_text",
+                            text: "Are you sure?"
+                        },
+                        text: {
+                            type: "mrkdwn",
+                            text: `Are you sure you want to skip <@${mainPlayerSlackId}>'s turn?`
+                        },
+                        confirm: {
+                            type: "plain_text",
+                            text: "Skip"
+                        },
+                        deny: {
+                            type: "plain_text",
+                            text: "Don't skip"
+                        },
+                        style: "danger"
+                    }
                 }
-            } 
+            }
         ]
-    }
+    } as Slack.Message;
 }
 
 export const REMIND_CHOOSE_ACTION = "remind_player_choose";
@@ -179,7 +198,26 @@ function getSkipVoteBlock( gameTurnIdx: number ) {
             },
             style: "danger",
             value: gameTurnIdx.toString(),
-            action_id: SKIP_ACTION
+            action_id: SKIP_ACTION,
+            confirm: {
+                title: {
+                    type: "plain_text",
+                    text: "Are you sure?"
+                },
+                text: {
+                    type: "mrkdwn",
+                    text: `Are you sure you want to skip the rest of the voting?`
+                },
+                confirm: {
+                    type: "plain_text",
+                    text: "Skip"
+                },
+                deny: {
+                    type: "plain_text",
+                    text: "Don't skip"
+                },
+                style: "danger"
+            }
         }
     }
 }
@@ -258,7 +296,7 @@ export function getPlayerChooseSummaryMessage(turnIdx: number, mainPlayerSlackId
                     type: "button",
                     text: {
                         type: "plain_text",
-                        text: "Pick a GIF"
+                        text: "Pick a Gif"
                     },
                     style: "primary",
                     value: turnIdx.toString(),
@@ -271,17 +309,35 @@ export function getPlayerChooseSummaryMessage(turnIdx: number, mainPlayerSlackId
             type: "section",
             text: {
                 type: "mrkdwn",
-                text: `Enough players have picked *${keyword}* GIFs. Wait for more or click to move on to voting`
+                text: `Enough players have picked *${keyword}* Gifs. Wait for more or click to move on to voting`
             },
             accessory: {
                 type: "button",
                 text: {
                     type: "plain_text",
-                    text: "VOTE!"
+                    text: "Skip the other players"
                 },
                 style: "danger",
                 value: turnIdx.toString(),
-                action_id: SKIP_ACTION
+                action_id: SKIP_ACTION,
+                confirm: {
+                    title: {
+                        type: "plain_text",
+                        text: "Are you sure?"
+                    },
+                    text: {
+                        type: "mrkdwn",
+                        text: `Are you sure you want to skip the other players?`
+                    },
+                    confirm: {
+                        type: "plain_text",
+                        text: "Skip"
+                    },
+                    deny: {
+                        type: "plain_text",
+                        text: "Don't skip"
+                    }
+                }
             }
         });
     }

@@ -98,7 +98,7 @@ export function getOtherPlayerChoosePrompt(turnIdx: number) {
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: "🕹 Choose a GIF 🕹"
+                    text: "🕹 Choose a Gif 🕹"
                 }
             },
             {
@@ -164,7 +164,7 @@ function getMainPlayerChooseDialogue(cards: Gif[], gameId: number, playerId: num
         private_metadata: JSON.stringify( metadata ),
         title: {
             "type": "plain_text",
-            "text": "🕹 Choose your GIF 🕹",
+            "text": "🕹 Choose your Gif 🕹",
             "emoji": true
         },
         "submit": {
@@ -181,7 +181,7 @@ function getMainPlayerChooseDialogue(cards: Gif[], gameId: number, playerId: num
             type: "section",
             text: {
                 type: "plain_text",
-                text: "Your GIFS"
+                text: "Your Gifs"
             }
         }]
     };
@@ -277,7 +277,7 @@ function getOtherPlayerChooseDialogue(cards: Gif[], keyword: string, mainPlayerS
         private_metadata: JSON.stringify( metadata ),
         title: {
             "type": "plain_text",
-            "text": "🕹 Choose your GIF 🕹",
+            "text": "🕹 Choose your Gif 🕹",
             "emoji": true
         },
         "submit": {

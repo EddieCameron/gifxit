@@ -17,7 +17,7 @@ const createGameResponse: Slack.SlashResponse = {
             type: "section",
             text: {
                 type: "mrkdwn",
-                text: "Do you want to start a Gifxit game in this channel?"
+                text: "Do you want to start a Gif Off in this channel?"
             }
         },
         {

@@ -1,4 +1,4 @@
-import { View, Option, InputBlock } from "@slack/web-api";
+import { View, Option, InputBlock, WebAPIPlatformError } from "@slack/web-api";
 import Gif from "./models/gif";
 import * as Slack from "./slack"
 import * as TurnManager from "./turnmanager"
@@ -10,14 +10,9 @@ import { DialogueMetadata } from "./gamemanager";
 
 export const START_MAIN_PLAYER_CHOOSE_ACTION_ID = "start_main_player_choose";
 export const MAIN_PLAYER_PASS_ACTION_ID = "main_player_pass";
+export const MAIN_PLAYER_NOMINATE_ACTION_ID = "main_player_nominate";
 
 export function getMainPlayerChoosePromptMessage(gameId: number, playerId: number, turnIdx: number) {
-    const metadata: DialogueMetadata = {
-        gameId: gameId,
-        playerId: playerId,
-        turnIdx: turnIdx,
-    }
-
     return {
         text: "It's your turn!",
         blocks: [
@@ -32,7 +27,7 @@ export function getMainPlayerChoosePromptMessage(gameId: number, playerId: numbe
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: "When you can, write a short message and choose a GIF that would be a good response to it"
+                    text: "When you can, write a short message and choose a Gif that would be a good response to it"
                 }
             },
             {
@@ -44,29 +39,51 @@ export function getMainPlayerChoosePromptMessage(gameId: number, playerId: numbe
                 ]
             },
             {
-                type: "actions",
-                elements: [
-                    {
-                        action_id: START_MAIN_PLAYER_CHOOSE_ACTION_ID,
-                        type: "button",
-                        text: {
-                            type: "plain_text",
-                            text: "Choose"
-                        },
-                        style: "primary",
-                        value: JSON.stringify(metadata)
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: "Choose a Gif!",
+                },
+                accessory: {
+                    action_id: START_MAIN_PLAYER_CHOOSE_ACTION_ID,
+                    type: "button",
+                    text: {
+                        type: "plain_text",
+                        text: "Choose"
                     },
-                    {
-                        action_id: MAIN_PLAYER_PASS_ACTION_ID,
-                        type: "button",
-                        text: {
-                            type: "plain_text",
-                            text: "Skip My Turn"
-                        },
-                        style: "danger",
-                        value: JSON.stringify(metadata)
+                    style: "primary",
+                },
+            },
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: "...or nominate someone else to go",
+                },
+                accessory: {
+                    action_id: MAIN_PLAYER_NOMINATE_ACTION_ID,
+                    type: "users_select",
+                    placeholder: {
+                      type: "plain_text",
+                      text: "Choose the next player"
                     }
-                ]
+                }
+            },
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: "...or skip and pick someone at random",
+                },
+                accessory: {
+                    action_id: MAIN_PLAYER_PASS_ACTION_ID,
+                    type: "button",
+                    text: {
+                        type: "plain_text",
+                        text: "Skip My Turn"
+                    },
+                    style: "danger",
+                }
             }
         ]
     }
@@ -100,6 +117,31 @@ export function getOtherPlayerChoosePrompt(turnIdx: number) {
                     value: turnIdx.toString(),
                     action_id: START_OTHER_PLAYER_CHOOSE_ACTION_ID
                 }
+            }
+        ]
+    }
+}
+
+function nominatedPlayerNotInChannelMessage(nominatedSlackId: string) {
+    return {
+        text: "Type /gifoff",
+        blocks: [
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: `<@${nominatedSlackId}> isn't in this channel. Invite them, then get them to click this button to start their turn`
+                },
+                accessory: 
+                {
+                    action_id: START_MAIN_PLAYER_CHOOSE_ACTION_ID,
+                    type: "button",
+                    text: {
+                        type: "plain_text",
+                        text: "Choose"
+                    },
+                    style: "primary",
+                },
             }
         ]
     }
@@ -321,20 +363,21 @@ function getOtherPlayerChooseDialogue(cards: Gif[], keyword: string, mainPlayerS
 
 export async function handleStartMainPlayerChoose(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
     console.log("Main player is choosing...");
-    const metadata = JSON.parse(payload.actions[0].value) as DialogueMetadata;
-
-    const game = await GameController.getGameForId(metadata.gameId);
-    if (game == undefined || game.currentturnidx != metadata.turnIdx || game.currentkeyword != undefined) {
+    const game = await GameController.getGameForSlackChannel(payload.channel.id);
+    if (game == undefined || game.currentkeyword != undefined) {
         respond({ replace_original: false, response_type: "ephemeral", text: "It's not your turn to choose a message" });
         return;
     }
-    if (metadata.playerId != game.currentplayerturn)
-        respond({ response_type: "ephemeral", replace_original: false, text: "It's not your turn to choose a message" });
-    
-    const cards = await GifController.dealCardsToPlayer(metadata.gameId, metadata.playerId);
-    const player = await PlayerController.getPlayerWithId(game.currentplayerturn);
 
-    const modal = getMainPlayerChooseDialogue(cards, game.id, metadata.playerId, game.currentturnidx, player.last_refresh_on_turn < game.currentturnidx);
+    const player = await PlayerController.getOrCreatePlayerWithSlackId(payload.user.id, game.id);
+    if (player.id != game.currentplayerturn) {
+        respond({ response_type: "ephemeral", replace_original: false, text: "It's not your turn to choose a message" });
+        return;
+    }
+
+    const cards = await GifController.dealCardsToPlayer(game.id, player.id);
+
+    const modal = getMainPlayerChooseDialogue(cards, game.id, player.id, game.currentturnidx, player.last_refresh_on_turn < game.currentturnidx);
     try {
         await Slack.showModal(game.workspace_id, payload.trigger_id, modal);
     }
@@ -347,15 +390,27 @@ export async function handleStartMainPlayerChoose(payload: Slack.ActionPayload, 
 
 export async function handleMainPlayerPass(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
     console.log("Main player is passing...");
-    const metadata = JSON.parse(payload.actions[0].value) as DialogueMetadata;
-
-    const game = await GameController.getGameForId(metadata.gameId);
-    if (game == undefined|| game.currentturnidx != metadata.turnIdx||game.currentkeyword != undefined)
+    const game = await GameController.getGameForSlackChannel(payload.channel.id);
+    if (game == undefined || game.currentkeyword != undefined)
         throw new Error("Unknown game");
-    if (metadata.playerId != game.currentplayerturn)
-        throw new Error("Not the main player but tried to pass");
     
     await TurnManager.startNextTurnWithRandomPlayer(game);
+    respond({ delete_original: true });
+}
+
+export async function handleMainPlayerNominate(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
+    console.log("Main player is nominating...");
+    const nominatedplayerid = payload.actions[0].selected_user;
+
+    const game = await GameController.getGameForSlackChannel(payload.channel.id);
+    if (game == undefined || game.currentkeyword != undefined)
+        throw new Error("Unknown game");
+    
+    const nominatedPlayer = await PlayerController.getOrCreatePlayerWithSlackId(nominatedplayerid,game.id);
+    if (nominatedPlayer == undefined)
+        throw new Error("Player not able to join game");
+    
+    await TurnManager.startNextTurnWithPlayer(game, nominatedPlayer);
     respond({ delete_original: true });
 }
 
@@ -379,8 +434,18 @@ export async function handleMainPlayerDialogueSubmit(payload: Slack.ViewSubmissi
     return undefined;
 }
 
+
 export async function promptMainPlayerTurn(slackId: string, game: Game, playerId: number, turnIdx: number) {
-    return Slack.postEphemeralMessage(game.workspace_id, game.slackchannelid, slackId, getMainPlayerChoosePromptMessage( game.id, playerId, turnIdx));
+    try {
+        await Slack.postEphemeralMessage(game.workspace_id, game.slackchannelid, slackId, getMainPlayerChoosePromptMessage(game.id, playerId, turnIdx));
+    }
+    catch (error) {
+        const slackError = error as WebAPIPlatformError;
+        if (slackError.data.error == "user_not_in_channel") {
+            // TODO invite? for now just add new public message
+            return Slack.postMessage( game.workspace_id, game.slackchannelid, nominatedPlayerNotInChannelMessage(slackId));
+        }
+    }
 }
 
 export async function promptOtherPlayerChoose(slackId: string, game: Game) {

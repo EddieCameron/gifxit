@@ -32,6 +32,10 @@ async function loadTokensIfNeeded() {
 }
 
 async function loadToken(workspaceId: string) {
+    const devWebToken = process.env.SLACK_WEB_TOKEN;
+    if (devWebToken != undefined && devWebToken.length > 0)
+        return devWebToken;
+    
     await loadTokensIfNeeded();
     return tokensByWorkspace[workspaceId];
 }

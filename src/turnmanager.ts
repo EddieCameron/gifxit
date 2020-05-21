@@ -651,11 +651,11 @@ export async function mainPlayerChoose(gameid: number, playerId: number, cardId:
     //return PlayerChoose.promptPlayerChooses(game, playersToChoose.map(p => p.slack_user_id));
 }
 
-export async function startNextTurn( game: Game, player: Player ) {
+export async function startNextTurnWithPlayer( game: Game, player: Player ) {
     await GameController.startNextTurn(game, player);
 
-    // draw cards
-    const allPlayers = await PlayerController.resetPlayersForNewTurn(game.id);
+    // reset players
+    await PlayerController.resetPlayersForNewTurn(game.id);
 
     // go to next player
     const nextplayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
@@ -666,10 +666,32 @@ export async function startNextTurn( game: Game, player: Player ) {
     return PlayerChoose.promptMainPlayerTurn(nextplayer.slack_user_id, game, nextplayer.id, game.currentturnidx);
 }
 
+export async function startNextTurnWithRandomPlayer(game: Game) {
+    // pick a random player that was in the last turn (but didnt go last time)
+    const allplayers = await PlayerController.getPlayersForGame(game.id);
+    if (allplayers.length == 0) {
+        throw Error("Can't start a turn with no players");
+    }
+    else if (allplayers.length == 1) {
+        // only one player, they have to go
+        return startNextTurnWithPlayer(game, allplayers[0]);
+    }
+    else {
+        const notlastplayer = allplayers.filter(p => p.id != game.currentplayerturn);
+        const inLastGame = notlastplayer.filter(p => p.chosen_gif_id != undefined);
+        if (inLastGame.length > 0) {
+            // pick random player who was in the last turn
+            return startNextTurnWithPlayer(game, inLastGame[Math.floor(Math.random() * inLastGame.length)]);
+        }
+        else {
+            // just pick anyone who wasnt the last player
+            return startNextTurnWithPlayer(game, notlastplayer[Math.floor(Math.random() * notlastplayer.length)]);
+        }
+    }
+}
+
 export async function startGame(game: Game) {
-    // set up player order TODO just use join order for now
-    const allplayers = await PlayerController.getPlayersForGame( game.id )
-    startNextTurn(game, allplayers[Math.floor(Math.random() * allplayers.length)]);
+    startNextTurnWithRandomPlayer(game);
 }
 
 // timers
@@ -718,8 +740,7 @@ export async function handleVoteTimeUp(metadata: string) {
 
 /// debug 
 export async function debugRestartTurn(game: Game) {
-    const allplayers = await PlayerController.getPlayersForGame( game.id )
-    startNextTurn(game, allplayers[Math.floor(Math.random() * allplayers.length)]);
+    startNextTurnWithRandomPlayer(game);
 }
 
 export async function debugStartVote(game: Game) {

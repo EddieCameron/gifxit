@@ -6,7 +6,6 @@
   "scripts": {
     "ts:build": "tsc",
     "build": "npm run ts:build",
-    "postinstall": "npm run build",
     "dev": "./node_modules/nodemon/bin/nodemon.js",
     "start": "node -r dotenv/config dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"

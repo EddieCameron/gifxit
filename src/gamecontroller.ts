@@ -45,21 +45,6 @@ export async function createGame(workspace: string, channel: string) {
     return game;
 }
 
-export async function pickNextPlayerTurn(game: Game) {
-    // pick next player
-    const players = await PlayerController.getPlayersForGame(game.id);
-        
-    players.sort((a: Player, b: Player) => a.id - b.id);
-    
-    for (const player of players) {
-        if (player.id > game.currentplayerturn) {
-            return player;
-        }
-    }
-    
-    return players[0];  // start again
-}
-
 export async function startNextTurn(game: Game, player: Player) {
     game.currentplayerturn = player.id;
 

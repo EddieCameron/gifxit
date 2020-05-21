@@ -106,7 +106,7 @@ export async function handleSkipOtherPlayersChooseAction(payload: Slack.ActionPa
 }
 
 export async function handleStartNextTurnAction(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
-    console.log("Starting next turn");
+    console.log("Starting next turn with random player");
     
     const game = await GameController.getGameForSlackChannel(payload.channel.id)
     if (game == undefined) {
@@ -119,13 +119,7 @@ export async function handleStartNextTurnAction(payload: Slack.ActionPayload, re
         return;
     }
 
-    const player = await PlayerController.getOrCreatePlayerWithSlackId(payload.user.id, game.id);
-    if (player == undefined) {
-        respond({ replace_original: false, response_type: "ephemeral", text: "You can't start a turn in this channel" });
-        return;
-    }
-
-    await TurnManager.startNextTurn(game, player);
+    await TurnManager.startNextTurnWithRandomPlayer(game);
     respond({ delete_original: true });
 }
 

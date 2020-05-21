@@ -355,8 +355,7 @@ export async function handleMainPlayerPass(payload: Slack.ActionPayload, respond
     if (metadata.playerId != game.currentplayerturn)
         throw new Error("Not the main player but tried to pass");
     
-    const nextTurnPlayer = await GameController.pickNextPlayerTurn(game);
-    await TurnManager.startNextTurn(game, nextTurnPlayer);
+    await TurnManager.startNextTurnWithRandomPlayer(game);
     respond({ delete_original: true });
 }
 

@@ -694,7 +694,7 @@ export async function startVoting(game: Game) {
         return;
     }
 
-    const chosenGifs = PlayerVotes.shuffle(await GifController.getCards(chosenPlayers.map(p => p.chosen_gif_id)));
+    const chosenGifs = await (await GifController.getCards(chosenPlayers.map(p => p.chosen_gif_id))).sort((a, b) => a.id - b.id);
     await GameController.startVote(game.id);
 
     await Slack.postMessage(game.workspace_id, game.slackchannelid, getPlayersReadyToVoteMessage( chosenGifs, game.currentkeyword));

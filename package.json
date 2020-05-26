@@ -1,7 +1,7 @@
 {
-  "name": "gifxit",
+  "name": "gifoff",
   "version": "1.0.0",
-  "description": "its gifs, with xit",
+  "description": "describe gifs poorly, with friends",
   "main": "index.js",
   "scripts": {
     "ts:build": "tsc",

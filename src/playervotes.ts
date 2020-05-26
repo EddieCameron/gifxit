@@ -172,7 +172,7 @@ export async function handleOpenPlayerVoteDialogue(payload: Slack.ActionPayload,
     }
 
     const otherPlayersWithGifs = allPlayers.filter(p => p.id != player.id && p.chosen_gif_id != undefined);
-    const gifs = shuffle(await GifController.getCards(otherPlayersWithGifs.map(p => p.chosen_gif_id)));
+    const gifs = (await GifController.getCards(otherPlayersWithGifs.map(p => p.chosen_gif_id))).sort((a, b) => a.id - b.id);
     const mainplayer = allPlayers.find(p => p.id == game.currentplayerturn);
 
     const modal = getVoteDialogue(gifs, game.currentkeyword, mainplayer.slack_user_id, game.id, player.id, game.currentturnidx);

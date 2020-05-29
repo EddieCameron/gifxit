@@ -1,9 +1,10 @@
 import * as Slack from '../../slack'
 import Gif from '../../models/gif'
-import { getEmojiForNumber, bellGifs, getFixedHeightUrl } from '../../utilities';
+import { getEmojiForNumber, bellGifs, getFixedHeightUrl, getTextList } from '../../utilities';
 import { KnownBlock, SectionBlock } from '@slack/web-api';
 import GameTurn from '../models/gameturn';
 import GameGif from '../models/gamegif';
+import GifVote from '../models/gifvotes';
 
 export function getSmallGifSection(gifurl: string, handNumber?: number) {
     return {
@@ -104,30 +105,40 @@ export async function showHintChosenMessage(workspace: string, channel: string, 
 }
 
 export const LOCK_IN_GIF_CALLBACK_ID = "lock_in_gif";
-function getGifOptionSections(gif: GameGif): KnownBlock[] {
-    return [
+function getGifOptionSections(gifVote: GifVote): KnownBlock[] {
+    let votedMessage = "";
+    if (gifVote.votes && gifVote.votes.length > 0) {
+        votedMessage = `${getTextList(gifVote.votes.map(p => `<@${p.slack_user_id}>`))} ${gifVote.votes.length == 1 ? "has" : "have"} voted for this Gif`
+    }
+
+    votedMessage += '\n You need 3 votes to lock this Gif in. One wrong Gif means game over'
+
+
+    const blocks: KnownBlock[] = [
         {
             type: "image",
-            image_url: getFixedHeightUrl( gif.url ),
+            image_url: getFixedHeightUrl(gifVote.gif.url),
             alt_text: "A gif"
         },
         {
             type: "section",
             text: {
                 type: "mrkdwn",
-                text: "Is this one of the hinted Gifs? Make sure eveyone agrees before choosing! If it's wrong the turn is over"
+                text: votedMessage
             },
             accessory: {
                 type: "button",
                 text: {
                     type: "plain_text",
-                    text: "Lock it in!"
+                    text: "VOTE!"
                 },
-                value: gif.id.toString(),
+                value: gifVote.gif.id.toString(),
                 action_id: LOCK_IN_GIF_CALLBACK_ID
             }
         }
     ]
+
+    return blocks;
 }
 
 function getCorrectGifSection(gif: GameGif): KnownBlock[] {
@@ -164,8 +175,7 @@ function getInCorrectGifSection(gif: GameGif): KnownBlock[] {
     ]
 }
 
-
-export function getGifOptionsMessage(turn: GameTurn, gifs: GameGif[]) {
+export function getGifOptionsMessage(turn: GameTurn, gifVotes: GifVote[] ) {
     const lockedInGifs = [];
     if (turn.chosen_a_gif_id) {
         lockedInGifs.push(turn.chosen_a_gif_id);
@@ -187,35 +197,29 @@ export function getGifOptionsMessage(turn: GameTurn, gifs: GameGif[]) {
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: `Here are your Gifs for this round`
-                }
-            },
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: `Your hint is *${turn.current_keyword}*`
+                    text: `Here are your Gifs for this round
+                    Your hint is *${turn.current_keyword}*`
                 }
             },
         ]
     }
 
-    for (const gif of gifs) {
-        const isLockedIn = lockedInGifs != undefined && lockedInGifs.some(g => g == gif.id);
-        if (isLockedIn && gif.is_target)
-            message.blocks = message.blocks.concat(getCorrectGifSection(gif))
-        else if (isLockedIn && !gif.is_target)
-            message.blocks = message.blocks.concat(getInCorrectGifSection(gif))
+    for (const gifVote of gifVotes) {
+        const isLockedIn = lockedInGifs != undefined && lockedInGifs.some(g => g == gifVote.gif.id);
+        if (isLockedIn && gifVote.gif.is_target)
+            message.blocks = message.blocks.concat(getCorrectGifSection(gifVote.gif))
+        else if (isLockedIn && !gifVote.gif.is_target)
+            message.blocks = message.blocks.concat(getInCorrectGifSection(gifVote.gif))
         else
-            message.blocks = message.blocks.concat(getGifOptionSections(gif))
+            message.blocks = message.blocks.concat(getGifOptionSections(gifVote))
         message.blocks.push({ type: "divider" });
     }
 
     return message;
 }
 
-export async function postGifOptionsMessage(workspace: string, channel: string, turn: GameTurn, gifs: GameGif[]) {
-    return Slack.postMessage(workspace, channel, getGifOptionsMessage( turn, gifs ) );
+export async function postGifOptionsMessage(workspace: string, channel: string, turn: GameTurn, gifVotes: GifVote[]) {
+    return Slack.postMessage(workspace, channel, getGifOptionsMessage( turn, gifVotes ) );
 }
 
 export async function postChoseCorrectlyMessage(workspace: string, channel: string, chosenGif: GameGif) {
@@ -231,6 +235,27 @@ export async function postChoseCorrectlyMessage(workspace: string, channel: stri
                 accessory: {
                     type: "image",
                     image_url: chosenGif.url,
+                    alt_text: "Gif"
+                }
+            }
+        ]
+    })
+}
+
+        
+export async function postPlayerVoted(workspace: string, channel: string, playerSlackId: string, gif: GameGif) {
+    return Slack.postMessage(workspace, channel, {
+        text: `<@${playerSlackId}> has voted!`,
+        blocks: [
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: `<@${playerSlackId}> has voted!`,
+                },
+                accessory: {
+                    type: "image",
+                    image_url: gif.url,
                     alt_text: "Gif"
                 }
             }

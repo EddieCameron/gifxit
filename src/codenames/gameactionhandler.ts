@@ -1,9 +1,8 @@
 import * as Slack from '../slack'
 import { getGameForSlackChannel, getTurnForId } from './gamecontroller'
-import Game from './models/game';
-import { createGame, mainPlayerChoose, startNextTurn, gifLockedIn } from './turnmanager';
+import { createGame, mainPlayerChoose, startNextTurn, gifLockedIn, gifVoted } from './turnmanager';
 import { getOrCreatePlayerWithSlackId, getPlayerWithId } from './playercontroller';
-import { getGifsForTurn } from './gifcontroller';
+import { getGifsForTurn, getGifVotesForTurn } from './gifcontroller';
 import { showChoosePromptModal, CHOOSE_PROMPT_KEYWORD_BLOCK_ID } from './slackobjects/modals';
 import { showChoosePromptMessage, postGifOptionsMessage } from './slackobjects/messages';
 
@@ -38,8 +37,8 @@ async function handleNoQuerySlash(workspace: string, channel: string, slackId: s
         }
     }
     else {
-        const gifs = await getGifsForTurn(null, turn.id);
-        await postGifOptionsMessage( game.workspace_id, game.slack_channel_id, turn, gifs);
+        const gifvotes = await getGifVotesForTurn(null, turn.id);
+        await postGifOptionsMessage( game.workspace_id, game.slack_channel_id, turn, gifvotes);
     }
 }
 
@@ -48,6 +47,16 @@ export async function handleSlash(slashPayload: Slack.SlashPayload): Promise<Sla
     console.log( slashQuery.length)
     if (slashQuery.length < 2) {
         return handleNoQuerySlash(slashPayload.team_id, slashPayload.channel_id, slashPayload.user_id);
+    }
+
+    const game = await getGameForSlackChannel(slashPayload.channel_id);
+    switch (slashQuery[1].toLowerCase()) {
+        case "restartturn":
+            startNextTurn(game);
+            break;
+    
+        default:
+            break;
     }
 }
 
@@ -129,31 +138,15 @@ export async function handleLockInGifButtonPressed(payload: Slack.ActionPayload,
         return;
     }
 
-    const lockedInGifId = +payload.actions[0].value;
-
-    if (turn.chosen_a_gif_id) {
-        if (turn.chosen_a_gif_id == lockedInGifId) {
-            respond({ response_type: "ephemeral", replace_original: false, text: "Gif already locked in for this turn" });
-            return;
-        }
-        if (turn.chosen_b_gif_id) {
-            if (turn.chosen_b_gif_id == lockedInGifId) {
-                respond({ response_type: "ephemeral", replace_original: false, text: "Gif already locked in for this turn" });
-                return;
-            }
-            if (turn.chosen_c_gif_id) {
-                if (turn.chosen_c_gif_id == lockedInGifId) {
-                    respond({ response_type: "ephemeral", replace_original: false, text: "Gif already locked in for this turn" });
-                    return;
-                }
-                if (turn.chosen_d_gif_id ) {
-                    respond({ response_type: "ephemeral", replace_original: false, text: "Laready locked in all the Gifs this turn" });
-                    return;
-                }
-            }
-        }
+    const player = await getOrCreatePlayerWithSlackId(payload.user.id, game.id);
+    if (player == undefined)
+        throw new Error("Couldn't create player?");
+    if (turn.player_id == player.id) {
+        respond({ response_type: "ephemeral", replace_original: false, text: "Hey, you can't vote for your own gif" });
+        return;
     }
-        
+
+    const lockedInGifId = +payload.actions[0].value;
 
     const gifs = await getGifsForTurn(null, turn.id);
     const chosenGif = gifs.find(g => g.id == lockedInGifId);
@@ -162,6 +155,14 @@ export async function handleLockInGifButtonPressed(payload: Slack.ActionPayload,
         return;
     }
 
-    const updatedMsg = await gifLockedIn(game, turn, chosenGif);
-    respond({ replace_original: true, text: updatedMsg.text, blocks: updatedMsg.blocks });
+    try {
+        const updatedMsg = await gifVoted(game, turn, player, chosenGif);
+        console.log(payload.response_url);
+        console.log("Updated votes msg: " + JSON.stringify(updatedMsg));
+        respond({ replace_original: true, text: updatedMsg.text, blocks: updatedMsg.blocks });
+        //Slack.postMessage(game.workspace_id, game.slack_channel_id, updatedMsg);
+        console.log("responded");
+    } catch (e) {
+        respond({ response_type: "ephemeral", replace_original: false, text: "Voting failed. Did you already vote for this gif?" });
+    }
 }

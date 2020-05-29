@@ -71,3 +71,19 @@ export function getFixedHeightUrl(url: string) {
 
     return url;
 }
+
+export function getTextList(listItems: string[]) {
+    let message = "";
+    for (let index = 0; index < listItems.length; index++) {
+        const item = listItems[index];
+
+        if (index > 0) {
+            if (index >= listItems.length - 1)
+                message += " and ";
+            else
+                message += ", ";
+        }
+        message += item;
+    }
+    return message;
+}

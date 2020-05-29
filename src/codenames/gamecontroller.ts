@@ -85,3 +85,8 @@ export async function lockInGif(client: PoolClient, turn: GameTurn, gifid: numbe
     }
     return turn;
 }
+
+export async function voteForGif(client: PoolClient, playerid: number, turnid: number, gifid: number) {
+    return await DB.query(client, "INSERT INTO codeplayervotes(turn_id, player_id, gif_id) VALUES($1, $2, $3) RETURNING *",
+        turnid, playerid, gifid);
+}

@@ -2,10 +2,10 @@ import { getPlayersForGame, getPlayerWithId } from "./playercontroller";
 import Game from "./models/game";
 import { shuffle } from "../utilities";
 import * as GameController from "./gamecontroller";
-import { showNewTurnMessage, showChoosePromptMessage, showHintChosenMessage, postGifOptionsMessage, postChoseCorrectlyMessage, getGifOptionsMessage, postYouDidItMessage, postYouFuckedItMessage } from "./slackobjects/messages";
+import { showNewTurnMessage, showChoosePromptMessage, showHintChosenMessage, postGifOptionsMessage, postChoseCorrectlyMessage, getGifOptionsMessage, postYouDidItMessage, postYouFuckedItMessage, postPlayerVoted } from "./slackobjects/messages";
 import Player from "./models/player";
 import GameTurn from "./models/gameturn";
-import { getGifsForTurn } from "./gifcontroller";
+import { getGifsForTurn, getGifVotesForTurn } from "./gifcontroller";
 import GameGif from "./models/gamegif";
 
 export async function startNextTurn(game: Game) {
@@ -36,8 +36,8 @@ export async function mainPlayerChoose(turn: GameTurn, player: Player, keyword: 
     const game = await GameController.getGameForId(turn.game_id);
     await showHintChosenMessage(game.workspace_id, game.slack_channel_id, player.slack_user_id);
 
-    const gifs = await getGifsForTurn(null, turn.id);
-    await postGifOptionsMessage( game.workspace_id, game.slack_channel_id, turn, gifs);
+    const allvotes = await getGifVotesForTurn(null, turn.id);
+    await postGifOptionsMessage( game.workspace_id, game.slack_channel_id, turn, allvotes);
 }
 
 export async function gifLockedIn( game: Game, turn: GameTurn, lockedInGif: GameGif) {
@@ -60,7 +60,24 @@ export async function gifLockedIn( game: Game, turn: GameTurn, lockedInGif: Game
         
         startNextTurn(game);
     }
+}
 
-    const gifs = await getGifsForTurn(null, turn.id);
-    return getGifOptionsMessage(turn, gifs);
+export async function gifVoted(game: Game, turn: GameTurn, player: Player, votedGif: GameGif) {
+    await GameController.voteForGif(null, player.id, turn.id, votedGif.id);
+
+    const allvotes = await getGifVotesForTurn(null, turn.id);
+    if (turn.chosen_a_gif_id == votedGif.id || turn.chosen_b_gif_id == votedGif.id || turn.chosen_c_gif_id == votedGif.id || turn.chosen_d_gif_id == votedGif.id) {
+        // already locked in this gif
+    }
+    else {
+        // check if the votes should be locked in
+        const thisGifVotes = allvotes.find(v => v.gif.id == votedGif.id);
+        if (thisGifVotes.votes.length >= 3) {
+            await gifLockedIn(game, turn, votedGif);
+        }
+    }
+
+    postPlayerVoted(game.workspace_id, game.slack_channel_id, player.slack_user_id, votedGif);
+
+    return getGifOptionsMessage(turn, allvotes);
 }

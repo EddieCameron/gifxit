@@ -79,7 +79,7 @@ export async function showChoosePromptModal(workspace: string, triggerid: string
             "type": "plain_text_input",
             "action_id": CHOOSE_PROMPT_KEYWORD_BLOCK_ID + "_text",
             min_length: 3,
-            max_length: 500
+            max_length: 144
         }
     });
 

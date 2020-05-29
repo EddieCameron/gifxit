@@ -284,6 +284,7 @@ interface ViewClosedPayload {
 export interface ActionPayload {
     type: 'block_actions';
     trigger_id: string;
+    response_url: string;
     team: {
         id: string;
         domain: string;

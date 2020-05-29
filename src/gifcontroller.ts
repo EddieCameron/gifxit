@@ -1,37 +1,38 @@
 import * as DB from "./server"
 import Gif from "./models/gif"
 import GameGif from "./models/gamegif"
+import { PoolClient } from "pg";
 
 export const HAND_SIZE = 5;
 
-async function createGameCard(card_id: number, game_id: number, player_id: number) {
-    return (await DB.query<GameGif>("INSERT INTO game_gifs(gif_id, game_id, player_id) VALUES($1, $2, $3) RETURNING *", card_id, game_id, player_id))[0];
+async function createGameCard( pgClient: PoolClient, card_id: number, game_id: number, player_id: number) {
+    return (await DB.query<GameGif>( pgClient, "INSERT INTO game_gifs(gif_id, game_id, player_id) VALUES($1, $2, $3) RETURNING *", card_id, game_id, player_id))[0];
 }
 
 export async function getCard(cardId: number) {
-    return ( await DB.query<Gif>("SELECT * FROM gifs WHERE id=$1", cardId) )[0];
+    return ( await DB.query<Gif>(null, "SELECT * FROM gifs WHERE id=$1", cardId) )[0];
 }
 
 export async function getCards(cardIds: number[]) {
-    return await DB.query<Gif>("SELECT * FROM gifs WHERE id = ANY($1)", cardIds);
+    return await DB.query<Gif>(null, "SELECT * FROM gifs WHERE id = ANY($1)", cardIds);
 }
 
-export async function getPlayerCards(gameId: number, playerId: number) {
-    return await DB.query<Gif>("SELECT gif.* FROM game_gifs game INNER JOIN gifs gif ON game.gif_id = gif.id WHERE game.player_id=$1 AND game.game_id=$2", playerId, gameId);
+async function getPlayerCards(pgClient: PoolClient, gameId: number, playerId: number) {
+    return await DB.query<Gif>( pgClient, "SELECT gif.* FROM game_gifs game INNER JOIN gifs gif ON game.gif_id = gif.id WHERE game.player_id=$1 AND game.game_id=$2", playerId, gameId);
 }
 
-export async function deletePlayerCards(gameId: number, playerId: number) {
-    return await DB.query("DELETE FROM game_gifs WHERE player_id=$1 AND game_id=$2", playerId, gameId);
+async function deletePlayerCards(pgClient: PoolClient, gameId: number, playerId: number) {
+    return await DB.query( pgClient, "DELETE FROM game_gifs WHERE player_id=$1 AND game_id=$2", playerId, gameId );
 }
 
-async function fillPlayerHand(currentGifs: Gif[], gameId: number, playerId: number) {
+async function fillPlayerHand( pgClient: PoolClient, currentGifs: Gif[], gameId: number, playerId: number) {
     const numCardsToDeal = HAND_SIZE - currentGifs.length;
     console.log( `Dealing ${numCardsToDeal} cards to ${playerId}` )
 
     if (numCardsToDeal > 0) {
-        const allGifs = await DB.query<Gif>("SELECT * FROM gifs");
-        const thisGameGifs = await DB.query<GameGif>("SELECT * FROM game_gifs WHERE game_id=$1", gameId);
-        const chosenGifs = await DB.query<number>("SELECT chosen_gif_id FROM players WHERE game_id=$1", gameId)
+        const allGifs = await DB.query<Gif>(pgClient, "SELECT * FROM gifs");
+        const thisGameGifs = await DB.query<GameGif>( pgClient, "SELECT * FROM game_gifs WHERE game_id=$1", gameId);
+        const chosenGifs = await DB.query<number>( pgClient, "SELECT chosen_gif_id FROM players WHERE game_id=$1", gameId)
         
         for (let i = 0; i < numCardsToDeal; i++) {
             for (let attempts = 0; attempts < 100; attempts++) {
@@ -64,7 +65,7 @@ async function fillPlayerHand(currentGifs: Gif[], gameId: number, playerId: numb
                 }
 
                 // give card to player
-                await createGameCard(nextCard.id, gameId, playerId);
+                await createGameCard(pgClient, nextCard.id, gameId, playerId);
                 currentGifs.push(nextCard);
                 break;
             }
@@ -75,20 +76,26 @@ async function fillPlayerHand(currentGifs: Gif[], gameId: number, playerId: numb
 }
 
 export async function redealCardsToPlayer(gameId: number, playerId: number, gameTurnIdx: number) {
-    try {
-        await DB.beginTransaction()
-        await deletePlayerCards(gameId, playerId);
-        const gifs = await fillPlayerHand([], gameId, playerId);
-        await DB.queryNoReturn("UPDATE players SET last_refresh_on_turn = $1 WHERE id=$2", gameTurnIdx, playerId);
-        await DB.commitTransaction();
-        return gifs;
-    } catch (e) {
-        await DB.rollbackTransaction();
-        throw e
-    }
+    let gifs: Gif[] = []
+    await DB.transactionCallback( async client => {
+        await deletePlayerCards(client, gameId, playerId);
+        gifs = await fillPlayerHand( client, [], gameId, playerId);
+        client.query("UPDATE players SET last_refresh_on_turn = $1 WHERE id=$2", [gameTurnIdx, playerId]);
+    });
+
+    return gifs;
 }
 
+export async function dealCardsToPlayerInTransaction(client: PoolClient, gameid: number, playerid: number) {
+    const playercards = await getPlayerCards(client, gameid, playerid)
+    return await fillPlayerHand(client, playercards, gameid, playerid);
+}
+
+
 export async function dealCardsToPlayer(gameid: number, playerid: number) {
-    const playercards = await getPlayerCards(gameid, playerid)
-    return fillPlayerHand(playercards, gameid, playerid);
+    let gifs: Gif[] = []
+    await DB.transactionCallback(async client => {
+        gifs = await dealCardsToPlayerInTransaction( client, gameid, playerid)
+    });
+    return gifs;
 }

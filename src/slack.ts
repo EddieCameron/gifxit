@@ -23,7 +23,7 @@ interface SlackToken {
 let tokensByWorkspace: Record<string, string>
 async function loadTokensIfNeeded() {
     if (tokensByWorkspace == undefined) {
-        const tokens = await DB.query<SlackToken>("SELECT * FROM slacktokens")
+        const tokens = await DB.query<SlackToken>(null, "SELECT * FROM slacktokens")
         tokensByWorkspace = {}
         for (const token of tokens) {
             tokensByWorkspace[token.workspace_id] = token.token
@@ -43,7 +43,7 @@ async function loadToken(workspaceId: string) {
 async function saveToken(workspaceId: string, token: string) {
     await loadTokensIfNeeded();
     tokensByWorkspace[workspaceId] = token;
-    return DB.queryNoReturn("INSERT INTO slacktokens(workspace_id, token) VALUES( $1, $2 )", workspaceId, token);
+    return DB.queryNoReturn(null, "INSERT INTO slacktokens(workspace_id, token) VALUES( $1, $2 )", workspaceId, token);
 }
 
 interface User {

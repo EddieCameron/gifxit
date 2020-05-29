@@ -8,6 +8,10 @@ import * as Slack from "./slack"
 import { addGif, removeGif } from "./addgif"
 import Game from "./models/game"
 
+import * as CodeActionHandler from './codenames/gameactionhandler'
+import * as CodeMessages from './codenames/slackobjects/messages'
+import * as CodeModals from './codenames/slackobjects/modals'
+
 const CREATE_GAME_ACTION_CALLBACK = "create_game_callback";
 const createGameResponse: Slack.SlashResponse = {
     response_type: "ephemeral",
@@ -195,6 +199,9 @@ export async function handleSlash(slashPayload: Slack.SlashPayload): Promise<Sla
     }
 
     switch (slashQuery[0].toLowerCase()) {
+        case "code":
+            return CodeActionHandler.handleSlash(slashPayload);
+
         case "restartturn":
             TurnManager.debugRestartTurn(game);
             return { response_type: "ephemeral", text: "Restarting turn..." };
@@ -241,4 +248,10 @@ export function init(): void {
     Slack.addViewSubmissionHandler(PlayerChoose.CHOOSE_MAIN_PLAYER_MODAL_CALLBACK_ID, PlayerChoose.handleMainPlayerDialogueSubmit );
     Slack.addViewSubmissionHandler(PlayerChoose.CHOOSE_OTHER_PLAYER_MODAL_CALLBACK_ID, PlayerChoose.handleOtherPlayerDialogueSubmit );
     Slack.addViewSubmissionHandler(PlayerVotes.PLAYER_VOTE_ACTION_ID, PlayerVotes.handlePlayerVote);
+
+
+    // codegifs
+    Slack.addActionHandler({ actionId: CodeMessages.CHOOSE_PROMPT_CALLBACK_ID }, CodeActionHandler.handleChoosePromptButtonPressed);
+    Slack.addActionHandler({ actionId: CodeMessages.LOCK_IN_GIF_CALLBACK_ID }, CodeActionHandler.handleLockInGifButtonPressed);
+    Slack.addViewSubmissionHandler(CodeModals.CHOOSE_PROMPT_DIALOGUE_SUBMIT_CALLBACK_ID, CodeActionHandler.handleChoosePromptDialogueSubmit );
 }

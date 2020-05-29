@@ -4,11 +4,11 @@ import TimedEvent from "./timedevent"
 const handlers: Record<string, (metadata: string) => void> = {}
 
 async function deleteTimer(eventId: string, starttime: Date) {
-    return DB.queryNoReturn("DELETE FROM timers WHERE event_id=$1 AND start_time=$2", eventId, starttime)
+    return DB.queryNoReturn(null, "DELETE FROM timers WHERE event_id=$1 AND start_time=$2", eventId, starttime)
 }
 
 export async function checkDBTimers() {
-    const timers = await DB.query<TimedEvent>("SELECT * FROM timers");
+    const timers = await DB.query<TimedEvent>( null, "SELECT * FROM timers");
 
     // do stuff
     const now = new Date().valueOf();
@@ -40,7 +40,7 @@ export async function checkDBTimers() {
 export async function addTimer(eventId: string, delayms: number, metadata?: string) {
 
     const now = new Date();
-    await DB.queryNoReturn("INSERT INTO timers(event_id, metadata, start_time, delay_ms) VALUES( $1, $2, $3, $4 )",
+    await DB.queryNoReturn(null, "INSERT INTO timers(event_id, metadata, start_time, delay_ms) VALUES( $1, $2, $3, $4 )",
         eventId, metadata, now, delayms)
     
     setTimeout( async () => {

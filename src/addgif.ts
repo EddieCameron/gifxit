@@ -18,7 +18,7 @@ export async function addGif(url: string): Promise<SlashResponse> {
     }
 
     try {
-        await query("INSERT INTO gifs(url) VALUES($1)", url);
+        await query(null, "INSERT INTO gifs(url) VALUES($1)", url);
         return { response_type: "ephemeral", text: "Added " + url };
     }
     catch (e) {
@@ -28,7 +28,7 @@ export async function addGif(url: string): Promise<SlashResponse> {
 
 export async function removeGif(url: string): Promise<SlashResponse> {
     try {
-        await query("DELETE FROM gifs WHERE url=$1", url);
+        await query(null, "DELETE FROM gifs WHERE url=$1", url);
         return { response_type: "ephemeral", text: "Removed " + url };
     }
     catch (e) {

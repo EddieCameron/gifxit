@@ -9,18 +9,6 @@ import Gif from "./models/gif";
 import Game from "./models/game";
 import { DialogueMetadata } from "./gamemanager";
 
-/**
- * Shuffles array in place. ES6 version
- * @param {Array} a items An array containing the items.
- */
-export function shuffle(a: any[]) {
-    for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-}
-
 export const OPEN_VOTE_DIALOGUE_CALLBACK_ID = "open_vote_dialogue";
 function getPromptStartVoteMessage(game: Game, playerId: number, mainPlayerSlackId: string, keyword: string, voteEndTime: Date) {
     const metadata: DialogueMetadata = {

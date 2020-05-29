@@ -11,60 +11,7 @@ import Game from "./models/game"
 import Player from "./models/player"
 import { DialogueMetadata } from "./gamemanager"
 import { addTimer, addTimerDueDate } from "./steadytimer/steadytimer"
-
-const bellGifs = [
-    "https://media.giphy.com/media/XF2WX3PiYOH8Q/giphy.gif",
-    "https://media.giphy.com/media/ghBHbA9qUIHZFYTqjw/giphy.gif",
-    'https://media.giphy.com/media/WREjsSwdm31MwTDW34/giphy.gif'
-]
-
-export function getEmojiForNumber(num: number) {
-    if (num == undefined)
-        return " ";
-    
-    const stringNum = num.toString();
-    let emojiString = "";
-    for (let index = 0; index < stringNum.length; index++) {
-        const digit = stringNum[index];
-        switch (digit) {
-            case "0":
-                emojiString += "0️⃣";
-                break;
-            case "1":
-                emojiString += "1️⃣";
-                break;
-            case "2":
-                emojiString += "2️⃣";
-                break;
-            case "3":
-                emojiString += "3️⃣";
-                break;
-            case "4":
-                emojiString += "4️⃣";
-                break;
-            case "5":
-                emojiString += "5️⃣";
-                break;
-            case "6":
-                emojiString += "6️⃣";
-                break;
-            case "7":
-                emojiString += "7️⃣";
-                break;
-            case "8":
-                emojiString += "8️⃣";
-                break;
-            case "9":
-                emojiString += "9️⃣";
-                break;
-            
-            default:
-                emojiString += " ";
-                break;
-            }
-    }
-    return emojiString;
-}
+import { getEmojiForNumber, bellGifs } from "./utilities"
 
 export function getTextList(listItems: string[]) {
     let message = "";

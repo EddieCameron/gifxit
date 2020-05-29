@@ -94,7 +94,7 @@ export async function getAllVotes(gameId: number) {
 }
 
 export async function addPoints(playerId: number, pointsToAdd: number) {
-    return (await DB.query<Player>( null, "UPDATE players SET score = score + $1 WHERE id=$2 RETURNING *", null, pointsToAdd, playerId))[0];
+    return (await DB.query<Player>( null, "UPDATE players SET score = score + $1 WHERE id=$2 RETURNING *", pointsToAdd, playerId))[0];
 }
 
 export async function resetPlayersForNewTurn(gameId: number ) {

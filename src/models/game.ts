@@ -10,6 +10,7 @@ export default interface Game {
     isreadytovote: boolean;
     isvotingcomplete: boolean;
 
+    lastturnpromptmessage: string;
     lastchosesummarymessage: string;
     lastvotesummarymessage: string;
 

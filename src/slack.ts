@@ -160,6 +160,10 @@ export function addViewSubmissionHandler(constraint: string | ViewConstraints, h
     });
 }
 
+export function addViewClosedHandler(constraint: string | ViewConstraints, handler: ViewClosedHandler) {
+    slackInteractions.viewClosed(constraint, handler);
+}
+
 export function addActionHandler(constraint: string | ActionConstraints, handler: ActionHandler) {
     slackInteractions.action(constraint, (payload, respond) => {
         return handler(payload, respond)
@@ -275,7 +279,11 @@ interface ViewSubmissionHandler {
     (payload: ViewSubmissionPayload, respond?: (response: InteractiveMessageResponse) => void ): Promise<InteractiveViewResponse|undefined>;
 }
 
-interface ViewClosedPayload {
+interface ViewClosedHandler {
+    (payload: ViewClosedPayload): void;
+}
+
+export interface ViewClosedPayload {
     type: 'view_closed';
     view: View;
     is_cleared: boolean;

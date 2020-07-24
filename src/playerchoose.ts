@@ -161,6 +161,7 @@ function getMainPlayerChooseDialogue(cards: Gif[], gameId: number, playerId: num
     const message: View = {
         type: "modal",
         callback_id: CHOOSE_MAIN_PLAYER_MODAL_CALLBACK_ID,
+        notify_on_close: true,
         private_metadata: JSON.stringify( metadata ),
         title: {
             "type": "plain_text",
@@ -380,6 +381,9 @@ export async function handleStartMainPlayerChoose(payload: Slack.ActionPayload, 
     const modal = getMainPlayerChooseDialogue(cards, game.id, player.id, game.currentturnidx, player.last_refresh_on_turn < game.currentturnidx);
     try {
         await Slack.showModal(game.workspace_id, payload.trigger_id, modal);
+
+        // update prompt for the other players
+        TurnManager.updateStartTurnMessage(game, player, true);
     }
     catch (e) {
         respond({ response_type: "ephemeral", replace_original: false, text: "Something went wrong with Slack. Try again?" });
@@ -432,6 +436,23 @@ export async function handleMainPlayerDialogueSubmit(payload: Slack.ViewSubmissi
     await TurnManager.mainPlayerChoose(game.id, metadata.playerId, chosenCardId, chosenKeyword);
 
     return undefined;
+}
+
+export function handlerMainPlayerDialogueClosed(payload: Slack.ViewClosedPayload) {
+    const metadata = JSON.parse(payload.view.private_metadata) as DialogueMetadata;
+    
+    try {
+        GameController.getGameForId(metadata.gameId)
+            .then(game => {
+                PlayerController.getPlayerWithId(metadata.playerId)
+                    .then(player => {
+                        TurnManager.updateStartTurnMessage(game, player, false);
+                    });
+            });
+    }
+    catch (error) {
+        console.error(error);
+    }
 }
 
 

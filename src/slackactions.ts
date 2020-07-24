@@ -245,7 +245,9 @@ export function init(): void {
     Slack.addActionHandler({ actionId: TurnManager.SKIP_ACTION }, handleSkipOtherPlayersChooseAction );
     Slack.addActionHandler({ actionId: PlayerChoose.MAIN_PLAYER_NOMINATE_ACTION_ID }, PlayerChoose.handleMainPlayerNominate );
     
-    Slack.addViewSubmissionHandler(PlayerChoose.CHOOSE_MAIN_PLAYER_MODAL_CALLBACK_ID, PlayerChoose.handleMainPlayerDialogueSubmit );
+    Slack.addViewSubmissionHandler(PlayerChoose.CHOOSE_MAIN_PLAYER_MODAL_CALLBACK_ID, PlayerChoose.handleMainPlayerDialogueSubmit);
+    Slack.addViewClosedHandler(PlayerChoose.CHOOSE_MAIN_PLAYER_MODAL_CALLBACK_ID, PlayerChoose.handlerMainPlayerDialogueClosed);
+
     Slack.addViewSubmissionHandler(PlayerChoose.CHOOSE_OTHER_PLAYER_MODAL_CALLBACK_ID, PlayerChoose.handleOtherPlayerDialogueSubmit );
     Slack.addViewSubmissionHandler(PlayerVotes.PLAYER_VOTE_ACTION_ID, PlayerVotes.handlePlayerVote);
 

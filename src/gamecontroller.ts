@@ -95,6 +95,17 @@ export async function startVote(gameId: number) {
     return game;
 }
 
+export async function setLastTurnPromptMessage(gameId: number, messagets: string) {
+    const game = await getGameForId(gameId);
+    
+    game.lastturnpromptmessage = messagets;
+    games[game.id] = game;
+    await DB.queryNoReturn( null,
+        "UPDATE games SET lastturnpromptmessage = $1 WHERE id=$2",
+        messagets, game.id);
+    return game;
+}
+
 export async function setChooseSummaryMessage(gameId: number, messagets: string) {
     const game = await getGameForId(gameId);
     

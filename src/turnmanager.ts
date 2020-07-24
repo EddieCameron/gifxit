@@ -67,14 +67,14 @@ export function getBigCardSections(card: Gif, handNumber?: number) {
     return blocks;
 }
 
-function getTurnStartMessage(mainPlayerSlackId: string, game: Game) {
+function getTurnStartMessage(mainPlayerSlackId: string, game: Game, playerIsPicking: boolean) {
     const metadata: DialogueMetadata = {
         gameId: game.id,
         playerId: game.currentplayerturn,
         turnIdx: game.currentturnidx,
     }
 
-    return {
+    const message = {
         text: `It's <@${mainPlayerSlackId}>'s turn!`,
         blocks: [
             {
@@ -122,6 +122,20 @@ function getTurnStartMessage(mainPlayerSlackId: string, game: Game) {
             }
         ]
     } as Slack.Message;
+
+    if (playerIsPicking) {
+        message.blocks.push(
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: `(🧑‍💻 they're currently choosing... 🧑‍💻)`,
+                }
+            }
+        );
+    }
+
+    return message;
 }
 
 export const REMIND_CHOOSE_ACTION = "remind_player_choose";
@@ -680,6 +694,11 @@ export async function mainPlayerChoose(gameid: number, playerId: number, cardId:
     //return PlayerChoose.promptPlayerChooses(game, playersToChoose.map(p => p.slack_user_id));
 }
 
+export async function updateStartTurnMessage(game: Game, player: Player, isChoosingGif: boolean) {
+    const startTurnMessage = getTurnStartMessage(player.slack_user_id, game, isChoosingGif);
+    return Slack.updateMessage(game.workspace_id, game.slackchannelid, game.lastturnpromptmessage, startTurnMessage);
+}   
+    
 export async function startNextTurnWithPlayer( game: Game, player: Player ) {
     await GameController.startNextTurn(game, player);
 
@@ -688,8 +707,10 @@ export async function startNextTurnWithPlayer( game: Game, player: Player ) {
 
     // go to next player
     const nextplayer = await PlayerController.getPlayerWithId(game.currentplayerturn);
-    const startTurnMessage = getTurnStartMessage(nextplayer.slack_user_id, game);
-    await Slack.postMessage( game.workspace_id, game.slackchannelid, startTurnMessage )
+    const startTurnMessage = getTurnStartMessage(nextplayer.slack_user_id, game, false);
+    const turnPromptMsg = await Slack.postMessage( game.workspace_id, game.slackchannelid, startTurnMessage )
+
+    GameController.setLastTurnPromptMessage(game.id, turnPromptMsg.ts);
 
     // prompt main player
     return PlayerChoose.promptMainPlayerTurn(nextplayer.slack_user_id, game, nextplayer.id, game.currentturnidx);

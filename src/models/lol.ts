@@ -1,5 +1,3 @@
-import { getBigGifSections } from "src/codenames/slackobjects/messages"
-
 export default interface Lol {
     id: number;
     game: number;

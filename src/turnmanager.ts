@@ -14,7 +14,7 @@ import { addTimer, addTimerDueDate } from "./steadytimer/steadytimer"
 import { getEmojiForNumber, bellGifs } from "./utilities"
 import { gifLockedIn } from "./codenames/turnmanager"
 import Lol from "./models/lol"
-import { getLolsForTurn } from "./LolController"
+import { getLolsForTurn } from "./lolcontroller"
 
 export function getTextList(listItems: string[]) {
     let message = "";

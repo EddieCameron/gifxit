@@ -8,7 +8,7 @@ import { Option, View } from "@slack/web-api";
 import Gif from "./models/gif";
 import Game from "./models/game";
 import { DialogueMetadata } from "./gamemanager";
-import { hasSlackUserLolled, addLol } from "./LolController";
+import { hasSlackUserLolled, addLol } from "./lolcontroller";
 
 export const OPEN_VOTE_DIALOGUE_CALLBACK_ID = "open_vote_dialogue";
 function getPromptStartVoteMessage(game: Game, playerId: number, mainPlayerSlackId: string, keyword: string, voteEndTime: Date) {

@@ -242,6 +242,7 @@ export function init(): void {
 
     Slack.addActionHandler({ actionId: TurnManager.REMIND_CHOOSE_ACTION }, handleRemindOtherPlayerChoose);
     Slack.addActionHandler({ actionId: PlayerVotes.OPEN_VOTE_DIALOGUE_CALLBACK_ID }, PlayerVotes.handleOpenPlayerVoteDialogue);
+    Slack.addActionHandler({ actionId: TurnManager.LOL_ACTION }, PlayerVotes.handleLol);
     Slack.addActionHandler({ actionId: TurnManager.SKIP_ACTION }, handleSkipOtherPlayersChooseAction );
     Slack.addActionHandler({ actionId: PlayerChoose.MAIN_PLAYER_NOMINATE_ACTION_ID }, PlayerChoose.handleMainPlayerNominate );
     

@@ -8,6 +8,7 @@ import { Option, View } from "@slack/web-api";
 import Gif from "./models/gif";
 import Game from "./models/game";
 import { DialogueMetadata } from "./gamemanager";
+import { hasSlackUserLolled, addLol } from "./LolController";
 
 export const OPEN_VOTE_DIALOGUE_CALLBACK_ID = "open_vote_dialogue";
 function getPromptStartVoteMessage(game: Game, playerId: number, mainPlayerSlackId: string, keyword: string, voteEndTime: Date) {
@@ -173,6 +174,36 @@ export async function handleOpenPlayerVoteDialogue(payload: Slack.ActionPayload,
 
     // TODO delete message if modal is cancelled
     // respond({ delete_original: true });
+}
+
+export async function handleLol(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
+    const metadata = JSON.parse( payload.actions[0].value ) as TurnManager.LolMetadata;
+    console.log("Player is lolling " + payload.user.username);
+
+    const game = await GameController.getGameForSlackChannel(payload.channel.id);
+    if (game == undefined || game.currentturnidx != metadata.turnIdx)
+        throw new Error("Unknown game or this button is from another turn");
+    if ( !game.isreadytovote)
+        throw new Error("Somehow you're lolling too early");
+    
+    const hasVoted = await hasSlackUserLolled(payload.user.id, game.id, metadata.turnIdx);
+    if (hasVoted) {
+        respond({ response_type: "ephemeral", replace_original: false, text: "You've already lolled at a Gif this turn" });
+        return;
+    }
+    
+    const allPlayers = await PlayerController.getPlayersForGame(game.id);
+    const lollingAtPlayer = await allPlayers.find(p => p.id == metadata.playerId);
+    if (lollingAtPlayer == undefined) {
+        respond({ response_type: "ephemeral", replace_original: false, text: "No player found to lol at?" });
+        return;
+    }
+    if (lollingAtPlayer.slack_user_id == payload.user.id) {
+        respond({ response_type: "ephemeral", replace_original: false, text: "Hey you can't lol at your own gif, it's tacky. I'm calling the police" });
+        return;
+    }
+    
+    addLol(payload.user.id, game.id, metadata.turnIdx, lollingAtPlayer.id, metadata.gifId);
 }
 
 export async function handlePlayerVote(payload: Slack.ViewSubmissionPayload): Promise<Slack.InteractiveViewResponse> {

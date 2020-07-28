@@ -12,6 +12,9 @@ import Player from "./models/player"
 import { DialogueMetadata } from "./gamemanager"
 import { addTimer, addTimerDueDate } from "./steadytimer/steadytimer"
 import { getEmojiForNumber, bellGifs } from "./utilities"
+import { gifLockedIn } from "./codenames/turnmanager"
+import Lol from "./models/lol"
+import { getLolsForTurn } from "./LolController"
 
 export function getTextList(listItems: string[]) {
     let message = "";
@@ -336,7 +339,14 @@ export function getPlayerChooseSummaryMessage(turnIdx: number, mainPlayerSlackId
     return message;
 }
 
-function getPlayersReadyToVoteMessage(cards: Gif[], keyword: string): Slack.Message {
+export interface LolMetadata {
+    turnIdx: number;
+    playerId: number;
+    gifId: number;
+}
+
+export const LOL_ACTION = "lol_callback";
+function getPlayersReadyToVoteMessage(cards: Gif[], players: Player[], keyword: string, turnIdx: number): Slack.Message {
     const message: Slack.Message = {
         text: `"Everyone has chosen a GIF. Sending voting cards out...`,
         blocks: [
@@ -350,8 +360,29 @@ function getPlayersReadyToVoteMessage(cards: Gif[], keyword: string): Slack.Mess
         ]
     }
 
-    for (const card of cards) {
+    for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+        const player = players[i];
+
         message.blocks = message.blocks.concat(getBigCardSections(card));
+        const lolMetadata: LolMetadata = {
+            turnIdx: turnIdx,
+            playerId: player.id,
+            gifId: card.id
+        };
+        message.blocks.push({
+            type: "actions",
+            elements: [{
+                type: "button",
+                text: {
+                    type: "plain_text",
+                    text: "lol"
+                },
+                value: JSON.stringify(lolMetadata),
+                action_id: LOL_ACTION,
+            }]
+        })
+        message.blocks.push({ type: "divider" });
     }
     return message
 }
@@ -394,7 +425,7 @@ function getVoteSummaryMessage( turnIdx: number, mainplayerslackid: string, vote
     return message;
 }
 
-function getVotesAreInMessage(gifVotes: GifVote[], mainPlayerId: number ): Slack.Message {
+function getVotesAreInMessage(gifVotes: [GifVote, number][], mainPlayerId: number ): Slack.Message {
     const message: Slack.Message = {
         text: `🗳 The votes are in...`,
         blocks: [
@@ -408,8 +439,9 @@ function getVotesAreInMessage(gifVotes: GifVote[], mainPlayerId: number ): Slack
         ]
     }
 
-    gifVotes = gifVotes.sort((v1, v2) => v2.votes.length - v1.votes.length);
-    for (const gifVote of gifVotes) {
+    gifVotes = gifVotes.sort((v1, v2) => v2[0].votes.length - v1[0].votes.length);
+    for (const gifVoteLol of gifVotes) {
+        const gifVote = gifVoteLol[0]
         const voteSection = getSmallCardSection(gifVote.gif, gifVote.votes.length);
 
         const isMainPlayerGif = gifVote.chosenByPlayer.id == mainPlayerId;
@@ -417,7 +449,9 @@ function getVotesAreInMessage(gifVotes: GifVote[], mainPlayerId: number ): Slack
         if (isMainPlayerGif)
             voteText = `✅ ${voteText} ✅`;
         
-        voteText += `\nVotes: ${getTextList(gifVote.votes.map( p => `<@${p.slack_user_id}>`))}`
+        voteText += `\nVotes: ${getTextList(gifVote.votes.map(p => `<@${p.slack_user_id}>`))}`
+        
+        voteText += `\nLols: ${gifVoteLol[1]} = +${gifVoteLol[1]} bonus points`;
 
         const numVotes = gifVote.votes.length;
         if (isMainPlayerGif) {
@@ -527,6 +561,9 @@ export async function scoreVotes(game: Game) {
     const gifVotes = await PlayerController.getAllVotes(game.id);
     await GameController.completeVote(game.id);
 
+    const lols = await getLolsForTurn(game.id, game.currentturnidx);
+    const lolsPerGif: number[] = []
+
     const playerPoints: { [playerId: number]: number } = {}
     for (const gifVote of gifVotes) {
         playerPoints[gifVote.chosenByPlayer.id] = 0;
@@ -555,6 +592,11 @@ export async function scoreVotes(game: Game) {
         else if (numVotes > 0) {
             playerPoints[gifVote.chosenByPlayer.id] += numVotes
         }
+
+        //add lol points
+        const numLols = lols.filter(l => l.forgif == gifVote.gif.id).length;
+        lolsPerGif.push(numLols)
+        playerPoints[gifVote.chosenByPlayer.id] += numLols;
     }
 
     // actually update
@@ -562,7 +604,7 @@ export async function scoreVotes(game: Game) {
         gifVote.chosenByPlayer = await PlayerController.addPoints(gifVote.chosenByPlayer.id, playerPoints[gifVote.chosenByPlayer.id]);
     }
 
-    const voteSummaryMessage = getVotesAreInMessage(gifVotes, game.currentplayerturn);
+    const voteSummaryMessage = getVotesAreInMessage(gifVotes.map( (e,i) => [e, lolsPerGif[i] ]), game.currentplayerturn);
     await Slack.postMessage(game.workspace_id, game.slackchannelid, voteSummaryMessage);
 
     // show updated scores for recent players
@@ -658,7 +700,7 @@ export async function startVoting(game: Game) {
     const chosenGifs = await (await GifController.getCards(chosenPlayers.map(p => p.chosen_gif_id))).sort((a, b) => a.id - b.id);
     await GameController.startVote(game.id);
 
-    await Slack.postMessage(game.workspace_id, game.slackchannelid, getPlayersReadyToVoteMessage( chosenGifs, game.currentkeyword));
+    await Slack.postMessage(game.workspace_id, game.slackchannelid, getPlayersReadyToVoteMessage( chosenGifs, chosenPlayers.sort( (a, b ) => a.chosen_gif_id - b.chosen_gif_id), game.currentkeyword, game.currentturnidx));
     await postNewVoteSummaryMessage(game);
 
     const mainPlayer = allPlayers.find(p => p.id == game.currentplayerturn);

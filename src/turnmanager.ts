@@ -122,6 +122,21 @@ function getTurnStartMessage(mainPlayerSlackId: string, game: Game, playerIsPick
                         style: "danger"
                     }
                 }
+            },
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: "...or nominate someone else to go",
+                },
+                accessory: {
+                    action_id: PlayerChoose.MAIN_PLAYER_NOMINATE_ACTION_ID,
+                    type: "users_select",
+                    placeholder: {
+                      type: "plain_text",
+                      text: "Choose the next player"
+                    }
+                }
             }
         ]
     } as Slack.Message;
@@ -451,7 +466,7 @@ function getVotesAreInMessage(gifVotes: [GifVote, number][], mainPlayerId: numbe
         
         voteText += `\nVotes: ${getTextList(gifVote.votes.map(p => `<@${p.slack_user_id}>`))}`
         
-        voteText += `\nLols: ${gifVoteLol[1]} = +${gifVoteLol[1]} bonus points`;
+        voteText += `\nLols: ${gifVoteLol[1]} = ${getEmojiForNumber( gifVoteLol[1] )} bonus points`;
 
         const numVotes = gifVote.votes.length;
         if (isMainPlayerGif) {

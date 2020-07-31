@@ -11,7 +11,7 @@ import Game from "./models/game"
 import Player from "./models/player"
 import { DialogueMetadata } from "./gamemanager"
 import { addTimer, addTimerDueDate } from "./steadytimer/steadytimer"
-import { getEmojiForNumber, bellGifs } from "./utilities"
+import { getEmojiForNumber, bellGifs, getDownsizedGifUrl, getFixedSizeGif } from "./utilities"
 import { gifLockedIn } from "./codenames/turnmanager"
 import Lol from "./models/lol"
 import { getLolsForTurn } from "./lolcontroller"
@@ -41,7 +41,7 @@ export function getSmallCardSection(card: Gif, handNumber?: number) {
         },
         "accessory": {
             "type": "image",
-            "image_url": card.url,
+            "image_url": getDownsizedGifUrl(card),
             "alt_text": "Gif " + (handNumber == undefined ? "" : handNumber.toString())
         }
     } as SectionBlock;
@@ -63,7 +63,7 @@ export function getBigCardSections(card: Gif, handNumber?: number) {
     blocks.push(
         {
             type: "image",
-            image_url: card.url,
+            image_url: getFixedSizeGif(card),
             alt_text: "Gif " + (handNumber == undefined ? "" : handNumber.toString())
         }
     );

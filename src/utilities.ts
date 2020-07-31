@@ -1,3 +1,5 @@
+import Gif from "./models/gif";
+
 /**
  * Shuffles array in place. ES6 version
  * @param {Array} a items An array containing the items.
@@ -86,4 +88,24 @@ export function getTextList(listItems: string[]) {
         message += item;
     }
     return message;
+}
+
+export function getDownsizedGifUrl(gif: Gif) {
+    if (gif.giphy_downsized !== undefined) {
+        if (gif.giphy_downsized.url !== undefined) {
+            return gif.giphy_downsized.url;
+        }
+    }
+
+    return gif.url;
+}
+
+export function getFixedSizeGif(gif: Gif) {
+    if (gif.giphy_fixed_height !== undefined) {
+        if (gif.giphy_fixed_height.mp4 !== undefined) {
+            return gif.giphy_fixed_height.mp4;
+        }
+    }
+
+    return gif.url;
 }

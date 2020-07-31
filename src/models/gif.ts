@@ -1,5 +1,14 @@
 export default interface Gif {
-    id: number,
+    id: number;
 
-    url: string
+    url: string;
+
+    giphy_fixed_height: GifInfo;
+
+    giphy_downsized: GifInfo;
+}
+
+export interface GifInfo {
+    url: string;
+    mp4: string;
 }

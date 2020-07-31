@@ -91,21 +91,9 @@ export function getTextList(listItems: string[]) {
 }
 
 export function getDownsizedGifUrl(gif: Gif) {
-    if (gif.giphy_downsized !== undefined) {
-        if (gif.giphy_downsized.url !== undefined) {
-            return gif.giphy_downsized.url;
-        }
-    }
-
-    return gif.url;
+    return gif.giphy_downsized?.url ?? gif.url;
 }
 
 export function getFixedSizeGif(gif: Gif) {
-    if (gif.giphy_fixed_height !== undefined) {
-        if (gif.giphy_fixed_height.mp4 !== undefined) {
-            return gif.giphy_fixed_height.mp4;
-        }
-    }
-
-    return gif.url;
+    return gif.giphy_fixed_height?.mp4 ?? gif.url;
 }

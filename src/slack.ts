@@ -5,7 +5,6 @@ import { Application, urlencoded, json, } from 'express';
 
 import { ViewConstraints, ActionConstraints } from '@slack/interactive-messages/dist/adapter';
 import { timeout, TimeoutError } from 'promise-timeout';
-import bent from "bent";
 
 import * as DB from "./server"
 
@@ -114,26 +113,45 @@ export function setMessageEventHandler(handler: (event: MessageEvent) => void ) 
 
 export async function postMessage(workspaceid: string, channel_id: string, message: Message) {
     const token = await loadToken(workspaceid);
-    return ( await slackWeb.chat.postMessage( { token: token, channel: channel_id, text: message.text, blocks: message.blocks }) ) as ChatPostMessageResult;
+    const result = await slackWeb.chat.postMessage({ token: token, channel: channel_id, text: message.text, blocks: message.blocks }) as ChatPostMessageResult;
+    if (!result.ok) {
+        console.log("Error posting message: " + message)
+        console.error(result.error);
+    }
+    return result;
 }
 
 export async function deleteMessage( workspaceid: string, channelId: string, ts: string) {
     const token = await loadToken(workspaceid);
-    return await slackWeb.chat.delete( { token: token, channel: channelId, ts: ts} );
+    const result = await slackWeb.chat.delete({ token: token, channel: channelId, ts: ts });
+    if (!result.ok) {
+        console.log("Error deleting message: " + ts)
+        console.error(result.error);
+    }
+    return result;
 }
 
 export async function postEphemeralMessage(workspaceId: string, channel_id: string, user: string, message: Message ) {
     const token = await loadToken(workspaceId);
-    return slackWeb.chat.postEphemeral( { token: token, channel: channel_id, user: user, text: message.text, blocks: message.blocks });
+    const result = await slackWeb.chat.postEphemeral( { token: token, channel: channel_id, user: user, text: message.text, blocks: message.blocks });
+    if (!result.ok) {
+        console.log("Error posting ephemeral message: " + message)
+        console.error(result.error);
+    }
+    return result;
 }
 
 export async function updateMessage(workspaceId: string, channel_id: string, ts: string, message: Message) {
     const token = await loadToken(workspaceId);
-    return slackWeb.chat.update({ token: token, channel: channel_id, ts: ts, text: message.text, blocks: message.blocks });
+    const result = await slackWeb.chat.update({ token: token, channel: channel_id, ts: ts, text: message.text, blocks: message.blocks });
+    if (!result.ok) {
+        console.log("Error updating message: " + message)
+        console.error(result.error);
+    }
+    return result;
 }
 
 export async function sendPm( workspaceId: string, user: string, message: Message) {
-    console.log(JSON.stringify(message));
     const response = await slackWeb.conversations.open({ users: user }) as ConversationOpenResponse
     if (!response.ok) {
         throw new Error("Failed to get PM channel: " + response.error );

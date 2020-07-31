@@ -58,21 +58,6 @@ export function getMainPlayerChoosePromptMessage(gameId: number, playerId: numbe
                 type: "section",
                 text: {
                     type: "mrkdwn",
-                    text: "...or nominate someone else to go",
-                },
-                accessory: {
-                    action_id: MAIN_PLAYER_NOMINATE_ACTION_ID,
-                    type: "users_select",
-                    placeholder: {
-                      type: "plain_text",
-                      text: "Choose the next player"
-                    }
-                }
-            },
-            {
-                type: "section",
-                text: {
-                    type: "mrkdwn",
                     text: "...or skip and pick someone at random",
                 },
                 accessory: {

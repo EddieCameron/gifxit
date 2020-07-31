@@ -19,7 +19,6 @@ export async function query<T>( client: PoolClient, query: string, ...params: an
   else
     result = await client.query(query, params);
     
-  console.log( JSON.stringify( result.rows ) );
   return result.rows.map(value => value as T);
 }
 

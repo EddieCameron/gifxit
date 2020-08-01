@@ -6,6 +6,18 @@ import { SlashResponse } from "./slack";
 const gifMagic = '47494638'
 const getGif = bent('GET', "buffer", 200, 206, { Range: "bytes=0-16" } );
 
+async function getGiphyInfo(url: string) {
+    if (!url.includes('giphy'))
+        return undefined;
+
+    const match = url.match(  /.+\/(.+)\// );
+    if ( match != undefined ) {
+        const id = match[1]
+        const url = `https://api.giphy.com/v1/gifs/${id}?api_key=${process.env.GIPHY_API_KEY}`
+        return await bent('json')(url) as GiphyResult;
+    }
+}
+
 export async function addGif(url: string): Promise<SlashResponse> {
     try {
         const gifBuffer = await getGif(url) as Buffer;
@@ -18,7 +30,13 @@ export async function addGif(url: string): Promise<SlashResponse> {
     }
 
     try {
-        await query(null, "INSERT INTO gifs(url) VALUES($1)", url);
+        const giphyInfo = await getGiphyInfo(url)
+        if (giphyInfo === undefined) {
+            await query(null, "INSERT INTO gifs(url) VALUES($1)", url);
+        }
+        else {
+            await query(null, "INSERT INTO gifs(url,giphy_fixed_height,giphy_downsized) VALUES($1,$2,$3)", url, giphyInfo.data.images.fixed_height, giphyInfo.data.images.downsized );
+        }
         return { response_type: "ephemeral", text: "Added " + url };
     }
     catch (e) {
@@ -34,4 +52,21 @@ export async function removeGif(url: string): Promise<SlashResponse> {
     catch (e) {
         return { response_type: "ephemeral", text: "Couldn't remove GIF. Was this ever actually a gif?" };
     }
+}
+
+interface GiphyResult {
+    meta: {
+        status: number;
+    };
+    data: {
+        id: string;
+        images: {
+            fixed_height: {
+                url: string;
+            };
+            downsized: {
+                url: string;
+            };
+        };
+    };
 }

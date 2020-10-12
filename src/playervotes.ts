@@ -218,23 +218,21 @@ export async function handleVoteButton(payload: Slack.ActionPayload, respond: (m
     if (game.isvotingcomplete)
         throw new Error("Voting already complete, you were too slow :-(");
     
-    const allPlayers = await PlayerController.getPlayersForGame(game.id);
-    const player = allPlayers.find(p => p.id == metadata.playerId);
-    if (player == undefined || player.chosen_gif_id == undefined) {
+    const gamePlayer = await PlayerController.getOrCreatePlayerWithSlackId( payload.user.id, game.id )
+    if (gamePlayer == undefined || gamePlayer.chosen_gif_id == undefined) {
         respond({ response_type: "ephemeral", replace_original: false, text: "Are you in this round?" });
         return;
     }
-    if (player.id == game.currentplayerturn ) {
+    if (gamePlayer.id == game.currentplayerturn ) {
         respond({ response_type: "ephemeral", replace_original: false, text: "You can't vote!" });
         return;
     }
-    if (player.voted_gif_id != undefined ) {
+    if (gamePlayer.voted_gif_id != undefined ) {
         respond({ response_type: "ephemeral", replace_original: false, text: "You've already voted!" });
         return;
     }
     
     await TurnManager.playerVote(game.id, metadata.playerId, metadata.gifId);
-    respond({ response_type: "ephemeral", replace_original: false, text: "🗳 Vote Received 🗳" });
 }
 
 export async function handlePlayerVote(payload: Slack.ViewSubmissionPayload): Promise<Slack.InteractiveViewResponse> {

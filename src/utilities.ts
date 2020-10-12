@@ -95,5 +95,5 @@ export function getDownsizedGifUrl(gif: Gif) {
 }
 
 export function getFixedSizeGif(gif: Gif) {
-    return gif.giphy_fixed_height?.mp4 ?? gif.url;
+    return gif.giphy_fixed_height?.url ?? gif.url;
 }

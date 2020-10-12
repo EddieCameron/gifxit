@@ -1,5 +1,6 @@
 import { GiphyFetch } from '@giphy/js-fetch-api'
 import { getGifWithGiphyId } from './gifcontroller'
+require("isomorphic-fetch");
 
 const gf = new GiphyFetch('5r0wlCxVXAzvMxeakZoinngVKYwHvvMA')
 

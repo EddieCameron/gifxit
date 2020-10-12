@@ -403,7 +403,7 @@ function getPlayersReadyToVoteMessage(cards: Gif[], players: Player[], keyword: 
                     text: "VOTE!"
                 },
                 value: JSON.stringify(voteMetadata),
-                    action_id: VOTE_ACTION,
+                action_id: VOTE_ACTION,
                 style: "primary"
             }
             ]
@@ -726,7 +726,12 @@ export async function startVoting(game: Game) {
     const chosenGifs = await (await GifController.getCards(chosenPlayers.map(p => p.chosen_gif_id))).sort((a, b) => a.id - b.id);
     await GameController.startVote(game.id);
 
-    await Slack.postMessage(game.workspace_id, game.slackchannelid, getPlayersReadyToVoteMessage( chosenGifs, chosenPlayers.sort( (a, b ) => a.chosen_gif_id - b.chosen_gif_id), game.currentkeyword, game.currentturnidx));
+    try {
+        await Slack.postMessage(game.workspace_id, game.slackchannelid, getPlayersReadyToVoteMessage(chosenGifs, chosenPlayers.sort((a, b) => a.chosen_gif_id - b.chosen_gif_id), game.currentkeyword, game.currentturnidx));
+    } catch (e) {
+        console.error(e);
+    }
+    
     await postNewVoteSummaryMessage(game);
 
     // const mainPlayer = allPlayers.find(p => p.id == game.currentplayerturn);

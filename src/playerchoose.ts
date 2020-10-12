@@ -290,6 +290,7 @@ function getOtherPlayerChooseDialogue(cards: Gif[], keyword: string, mainPlayerS
     for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
         // add card description
+        console.log( "Showing " + JSON.stringify( card ) + " " + message.blocks.length )
         const sections = TurnManager.getBigCardSections(card, i + 1)
         message.blocks = message.blocks.concat(sections);
         message.blocks.push({ type: "divider" });

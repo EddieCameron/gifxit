@@ -2,8 +2,11 @@ import * as DB from "./server"
 import Gif from "./models/gif"
 import GameGif from "./models/gamegif"
 import { PoolClient } from "pg";
+import { getNewRandomGif } from "./giphy";
+import { addGiphyGif } from "./addgif";
 
 export const HAND_SIZE = 5;
+export const NEW_GIF_CHANCE = .2;
 
 async function createGameCard( pgClient: PoolClient, card_id: number, game_id: number, player_id: number) {
     return (await DB.query<GameGif>( pgClient, "INSERT INTO game_gifs(gif_id, game_id, player_id) VALUES($1, $2, $3) RETURNING *", card_id, game_id, player_id))[0];
@@ -11,6 +14,10 @@ async function createGameCard( pgClient: PoolClient, card_id: number, game_id: n
 
 export async function getCard(cardId: number) {
     return ( await DB.query<Gif>(null, "SELECT * FROM gifs WHERE id=$1", cardId) )[0];
+}
+
+export async function getGifWithGiphyId(id: string) {
+    return (await DB.query<Gif>(null, "SELECT * FROM gifs WHERE giphy_id=$1", id))[0];
 }
 
 export async function getCards(cardIds: number[]) {
@@ -42,25 +49,32 @@ async function fillPlayerHand( pgClient: PoolClient, currentGifs: Gif[], gameId:
                     console.error("Ran out of new cards somehow");
                     return;
                 }
-                
-                const nextCard = allGifs[Math.floor(Math.random() * allGifs.length)];
-            
-                if (currentGifs.some(c => c.id == nextCard.id)) {
-                    // have alredy dealt this card
-                    continue;
+
+                let nextCard: Gif;
+                if (Math.random() < NEW_GIF_CHANCE) {
+                    const randomGif = await getNewRandomGif();
+                    nextCard = await addGiphyGif(randomGif);
                 }
-                
-                if (thisGameGifs.length < allGifs.length) {
-                    // check that gif hasn't already been dealt
-                    if (thisGameGifs.some(g => g.gif_id == nextCard.id)) {
-                        continue;   // try again
+                else {
+                    nextCard = allGifs[Math.floor(Math.random() * allGifs.length)];
+
+                    if (currentGifs.some(c => c.id == nextCard.id)) {
+                        // have alredy dealt this card
+                        continue;
                     }
-                }
                 
-                if (chosenGifs.length < allGifs.length) {
-                    // check that gif hasn't already been chosen
-                    if (chosenGifs.some(g => g == nextCard.id)) {
-                        continue;   // try again
+                    if (thisGameGifs.length < allGifs.length) {
+                        // check that gif hasn't already been dealt
+                        if (thisGameGifs.some(g => g.gif_id == nextCard.id)) {
+                            continue;   // try again
+                        }
+                    }
+                
+                    if (chosenGifs.length < allGifs.length) {
+                        // check that gif hasn't already been chosen
+                        if (chosenGifs.some(g => g == nextCard.id)) {
+                            continue;   // try again
+                        }
                     }
                 }
 

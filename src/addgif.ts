@@ -2,6 +2,8 @@ import { query } from "./server";
 import bent from "bent";
 import e from "express";
 import { SlashResponse } from "./slack";
+import { IGif } from "@giphy/js-types";
+import Gif from "./models/gif";
 
 const gifMagic = '47494638'
 const getGif = bent('GET', "buffer", 200, 206, { Range: "bytes=0-16" } );
@@ -42,6 +44,10 @@ export async function addGif(url: string): Promise<SlashResponse> {
     catch (e) {
         return { response_type: "ephemeral", text: "Couldn't add GIF. Was the URL unique?" };
     }
+}
+
+export async function addGiphyGif(gif: IGif) {
+    return (await query<Gif>(null, "INSERT INTO gifs(url,giphy_fixed_height,giphy_downsized, giphy_id) VALUES($1,$2,$3,$4) RETURNING *", gif.url, gif.images.fixed_height, gif.images.downsized, gif.id))[0];
 }
 
 export async function removeGif(url: string): Promise<SlashResponse> {

@@ -3,6 +3,8 @@ export default interface Gif {
 
     url: string;
 
+    giphy_id: string;
+
     giphy_fixed_height: GifInfo;
 
     giphy_downsized: GifInfo;

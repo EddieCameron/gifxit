@@ -232,7 +232,7 @@ export async function handleVoteButton(payload: Slack.ActionPayload, respond: (m
         return;
     }
     
-    await TurnManager.playerVote(game.id, metadata.playerId, metadata.gifId);
+    await TurnManager.playerVote(game.id, gamePlayer.id, metadata.gifId);
 }
 
 export async function handlePlayerVote(payload: Slack.ViewSubmissionPayload): Promise<Slack.InteractiveViewResponse> {

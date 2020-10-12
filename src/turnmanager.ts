@@ -729,9 +729,9 @@ export async function startVoting(game: Game) {
     await Slack.postMessage(game.workspace_id, game.slackchannelid, getPlayersReadyToVoteMessage( chosenGifs, chosenPlayers.sort( (a, b ) => a.chosen_gif_id - b.chosen_gif_id), game.currentkeyword, game.currentturnidx));
     await postNewVoteSummaryMessage(game);
 
-    const mainPlayer = allPlayers.find(p => p.id == game.currentplayerturn);
-    const votingPlayers = chosenPlayers.filter(p => p.id != game.currentplayerturn);
-    await PlayerVotes.promptPlayerVotes(game, mainPlayer, votingPlayers);
+    // const mainPlayer = allPlayers.find(p => p.id == game.currentplayerturn);
+    // const votingPlayers = chosenPlayers.filter(p => p.id != game.currentplayerturn);
+    // await PlayerVotes.promptPlayerVotes(game, mainPlayer, votingPlayers);
 
     const metadata: ChooseTimerMetadata = {
         gameId: game.id,

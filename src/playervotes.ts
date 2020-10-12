@@ -177,7 +177,7 @@ export async function handleOpenPlayerVoteDialogue(payload: Slack.ActionPayload,
 }
 
 export async function handleLol(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
-    const metadata = JSON.parse( payload.actions[0].value ) as TurnManager.LolMetadata;
+    const metadata = JSON.parse( payload.actions[0].value ) as TurnManager.VoteMetadata;
     console.log("Player is lolling " + payload.user.username);
 
     const game = await GameController.getGameForSlackChannel(payload.channel.id);
@@ -204,6 +204,37 @@ export async function handleLol(payload: Slack.ActionPayload, respond: (message:
     }
     
     addLol(payload.user.id, game.id, metadata.turnIdx, lollingAtPlayer.id, metadata.gifId);
+}
+
+export async function handleVoteButton(payload: Slack.ActionPayload, respond: (message: Slack.InteractiveMessageResponse) => void) {
+    const metadata = JSON.parse( payload.actions[0].value ) as TurnManager.VoteMetadata;
+    console.log("Player is voting " + payload.user.username);
+
+    const game = await GameController.getGameForSlackChannel(payload.channel.id);
+    if (game == undefined || game.currentturnidx != metadata.turnIdx)
+        throw new Error("Unknown game or this button is from another turn");
+    if ( !game.isreadytovote)
+        throw new Error("Somehow you're voting too early");
+    if (game.isvotingcomplete)
+        throw new Error("Voting already complete, you were too slow :-(");
+    
+    const allPlayers = await PlayerController.getPlayersForGame(game.id);
+    const player = allPlayers.find(p => p.id == metadata.playerId);
+    if (player == undefined || player.chosen_gif_id == undefined) {
+        respond({ response_type: "ephemeral", replace_original: false, text: "Are you in this round?" });
+        return;
+    }
+    if (player.id == game.currentplayerturn ) {
+        respond({ response_type: "ephemeral", replace_original: false, text: "You can't vote!" });
+        return;
+    }
+    if (player.voted_gif_id != undefined ) {
+        respond({ response_type: "ephemeral", replace_original: false, text: "You've already voted!" });
+        return;
+    }
+    
+    await TurnManager.playerVote(game.id, metadata.playerId, metadata.gifId);
+    respond({ response_type: "ephemeral", replace_original: false, text: "🗳 Vote Received 🗳" });
 }
 
 export async function handlePlayerVote(payload: Slack.ViewSubmissionPayload): Promise<Slack.InteractiveViewResponse> {

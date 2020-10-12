@@ -354,13 +354,14 @@ export function getPlayerChooseSummaryMessage(turnIdx: number, mainPlayerSlackId
     return message;
 }
 
-export interface LolMetadata {
+export interface VoteMetadata {
     turnIdx: number;
     playerId: number;
     gifId: number;
 }
 
 export const LOL_ACTION = "lol_callback";
+export const VOTE_ACTION = "vote_callback";
 function getPlayersReadyToVoteMessage(cards: Gif[], players: Player[], keyword: string, turnIdx: number): Slack.Message {
     const message: Slack.Message = {
         text: `"Everyone has chosen a GIF. Sending voting cards out...`,
@@ -380,7 +381,7 @@ function getPlayersReadyToVoteMessage(cards: Gif[], players: Player[], keyword: 
         const player = players[i];
 
         message.blocks = message.blocks.concat(getBigCardSections(card));
-        const lolMetadata: LolMetadata = {
+        const voteMetadata: VoteMetadata = {
             turnIdx: turnIdx,
             playerId: player.id,
             gifId: card.id
@@ -393,9 +394,19 @@ function getPlayersReadyToVoteMessage(cards: Gif[], players: Player[], keyword: 
                     type: "plain_text",
                     text: "lol"
                 },
-                value: JSON.stringify(lolMetadata),
+                value: JSON.stringify(voteMetadata),
                 action_id: LOL_ACTION,
-            }]
+            },{
+                type: "button",
+                text: {
+                    type: "plain_text",
+                    text: "VOTE!"
+                },
+                value: JSON.stringify(voteMetadata),
+                    action_id: VOTE_ACTION,
+                style: "primary"
+            }
+            ]
         })
         message.blocks.push({ type: "divider" });
     }

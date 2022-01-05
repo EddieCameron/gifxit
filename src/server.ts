@@ -7,9 +7,7 @@ const poolConfig: PoolConfig = {
 if (process.env.DATABASE_SSL != undefined)
   poolConfig.ssl = JSON.parse(process.env.DATABASE_SSL);
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
-})
+const pool = new Pool(poolConfig)
 
 export async function query<T>( client: PoolClient, query: string, ...params: any[]) {
   console.log("Querying: " + query);

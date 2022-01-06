@@ -38,7 +38,7 @@ export async function addGif(url: string): Promise<SlashResponse> {
         }
         else {
             console.log(giphyInfo);
-            await query(null, "INSERT INTO gifs(url,giphy_fixed_height,giphy_downsized) VALUES($1,$2,$3)", url, giphyInfo.data.images.fixed_height.url, giphyInfo.data.images.downsized.url );
+            await query(null, "INSERT INTO gifs(url,giphy_fixed_height,giphy_downsized) VALUES($1,$2,$3)", url, giphyInfo.data.images.fixed_height, giphyInfo.data.images.downsized );
         }
         return { response_type: "ephemeral", text: "Added " + url };
     }

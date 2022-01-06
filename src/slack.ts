@@ -83,6 +83,10 @@ interface UserResult extends WebAPICallResult {
     user: User;
 }
 
+interface UserPresenceResult extends WebAPICallResult {
+    presence: string;
+}
+
 function getErrorModal(error: Error): View {
     return {
         "type": "modal",
@@ -163,6 +167,11 @@ export async function sendPm( workspaceId: string, user: string, message: Messag
 export async function getSlackUser( workspaceId: string, slackUserId: string) {
     const token = await loadToken(workspaceId);
     return await slackWeb.users.info({token: token, user: slackUserId }) as UserResult;
+}
+
+export async function getSlackUserPresence( workspaceId: string, slackUserId: string) {
+    const token = await loadToken(workspaceId);
+    return await slackWeb.users.getPresence({token: token, user: slackUserId }) as UserPresenceResult;
 }
 
 export function addViewSubmissionHandler(constraint: string | ViewConstraints, handler: ViewSubmissionHandler) {

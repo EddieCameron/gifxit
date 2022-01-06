@@ -789,6 +789,19 @@ export async function startNextTurnWithPlayer( game: Game, player: Player ) {
     return PlayerChoose.promptMainPlayerTurn(nextplayer.slack_user_id, game, nextplayer.id, game.currentturnidx);
 }
 
+async function getRandomActivePlayer(game: Game, players: Player[]) {
+    while (players.length > 0) {
+        const randomIdx = Math.floor(Math.random() * players.length);
+        const randomPlayer = players[randomIdx]
+        const presence = await Slack.getSlackUserPresence(game.workspace_id, randomPlayer.slack_user_id);
+        if (presence.presence == "active") {
+            return randomPlayer;
+        }
+        players.splice(randomIdx, 1);
+    }
+    return null;
+}
+
 export async function startNextTurnWithRandomPlayer(game: Game) {
     // pick a random player that was in the last turn (but didnt go last time)
     const allplayers = await PlayerController.getPlayersForGame(game.id);
@@ -804,11 +817,13 @@ export async function startNextTurnWithRandomPlayer(game: Game) {
         const inLastGame = notlastplayer.filter(p => p.chosen_gif_id != undefined);
         if (inLastGame.length > 0) {
             // pick random player who was in the last turn
-            return startNextTurnWithPlayer(game, inLastGame[Math.floor(Math.random() * inLastGame.length)]);
+            const activeLastGamePlayer = await getRandomActivePlayer(game, inLastGame);
+            return startNextTurnWithPlayer(game, activeLastGamePlayer ?? inLastGame[Math.floor(Math.random() * inLastGame.length)]);
         }
         else {
             // just pick anyone who wasnt the last player
-            return startNextTurnWithPlayer(game, notlastplayer[Math.floor(Math.random() * notlastplayer.length)]);
+            const activeNotLastPlayer = await getRandomActivePlayer(game, notlastplayer);
+            return startNextTurnWithPlayer(game, activeNotLastPlayer ?? notlastplayer[Math.floor(Math.random() * notlastplayer.length)]);
         }
     }
 }

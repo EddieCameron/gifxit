@@ -7,6 +7,7 @@ import * as GifController from "./gifcontroller"
 import * as PlayerController from "./playercontroller"
 import Game from "./models/game";
 import { DialogueMetadata } from "./gamemanager";
+import { getFixedSizeGif } from "./utilities";
 
 export const START_MAIN_PLAYER_CHOOSE_ACTION_ID = "start_main_player_choose";
 export const MAIN_PLAYER_PASS_ACTION_ID = "main_player_pass";
@@ -177,7 +178,7 @@ function getMainPlayerChooseDialogue(cards: Gif[], gameId: number, playerId: num
     for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
         // add card description
-        console.log( "Showing " + card.giphy_fixed_height.url + " " + message.blocks.length )
+        console.log( "Showing " + getFixedSizeGif( card ) + " " + message.blocks.length )
 
         const sections = TurnManager.getBigCardSections(card, i + 1)
         message.blocks = message.blocks.concat(sections);

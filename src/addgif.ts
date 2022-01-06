@@ -37,11 +37,13 @@ export async function addGif(url: string): Promise<SlashResponse> {
             await query(null, "INSERT INTO gifs(url) VALUES($1)", url);
         }
         else {
+            console.log(giphyInfo);
             await query(null, "INSERT INTO gifs(url,giphy_fixed_height,giphy_downsized) VALUES($1,$2,$3)", url, giphyInfo.data.images.fixed_height.url, giphyInfo.data.images.downsized.url );
         }
         return { response_type: "ephemeral", text: "Added " + url };
     }
     catch (e) {
+        console.error( e )
         return { response_type: "ephemeral", text: "Couldn't add GIF. Was the URL unique?" };
     }
 }

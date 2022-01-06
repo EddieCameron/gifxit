@@ -14,3 +14,13 @@ export async function getNewRandomGif() {
     return null;
 }
 
+export async function getNewTrendingGif() {
+    const { data: gifs } = await gf.trending({ type: 'gifs' })
+    for (const gif of gifs) {
+        const existingGif = await getGifWithGiphyId( gif.id.toString())
+        if (existingGif == undefined)
+            return gif;
+    }
+    return null;
+}
+

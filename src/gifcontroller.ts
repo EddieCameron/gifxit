@@ -2,11 +2,11 @@ import * as DB from "./server"
 import Gif from "./models/gif"
 import GameGif from "./models/gamegif"
 import { PoolClient } from "pg";
-import { getNewRandomGif } from "./giphy";
+import { getNewRandomGif, getNewTrendingGif } from "./giphy";
 import { addGiphyGif } from "./addgif";
 
 export const HAND_SIZE = 5;
-export const NEW_GIF_CHANCE = .2;
+export const NEW_GIF_CHANCE = .5;
 
 async function createGameCard( pgClient: PoolClient, card_id: number, game_id: number, player_id: number) {
     return (await DB.query<GameGif>( pgClient, "INSERT INTO game_gifs(gif_id, game_id, player_id) VALUES($1, $2, $3) RETURNING *", card_id, game_id, player_id))[0];
@@ -52,7 +52,7 @@ async function fillPlayerHand( pgClient: PoolClient, currentGifs: Gif[], gameId:
 
                 let nextCard: Gif;
                 if (Math.random() < NEW_GIF_CHANCE) {
-                    const randomGif = await getNewRandomGif();
+                    const randomGif = await getNewTrendingGif();
                     nextCard = await addGiphyGif(randomGif);
                 }
                 else {

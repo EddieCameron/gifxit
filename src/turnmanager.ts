@@ -789,6 +789,15 @@ export async function startNextTurnWithPlayer( game: Game, player: Player ) {
     return PlayerChoose.promptMainPlayerTurn(nextplayer.slack_user_id, game, nextplayer.id, game.currentturnidx);
 }
 
+async function getRandomPlayer(game: Game, players: Player[]) {
+    while (players.length > 0) {
+        const randomIdx = Math.floor(Math.random() * players.length);
+        const randomPlayer = players[randomIdx]
+        return randomPlayer;
+    }
+    return null;
+}
+
 async function getRandomActivePlayer(game: Game, players: Player[]) {
     while (players.length > 0) {
         const randomIdx = Math.floor(Math.random() * players.length);

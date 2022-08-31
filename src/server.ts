@@ -1,11 +1,13 @@
 import { Pool, QueryConfig, PoolConfig, PoolClient } from "pg";
-console.log(process.env.DATABASE_URL)
+console.log(process.env.DB_HOST)
 
 const poolConfig: PoolConfig = {
-  connectionString: process.env.DATABASE_URL
+  port: +process.env.DB_PORT,
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 }
-if (process.env.DATABASE_SSL != undefined)
-  poolConfig.ssl = JSON.parse(process.env.DATABASE_SSL);
 
 const pool = new Pool(poolConfig)
 

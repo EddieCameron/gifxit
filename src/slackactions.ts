@@ -11,6 +11,7 @@ import Game from "./models/game"
 import * as CodeActionHandler from './codenames/gameactionhandler'
 import * as CodeMessages from './codenames/slackobjects/messages'
 import * as CodeModals from './codenames/slackobjects/modals'
+import { redealCardsToPlayer } from "./gifcontroller"
 
 const CREATE_GAME_ACTION_CALLBACK = "create_game_callback";
 const createGameResponse: Slack.SlashResponse = {
@@ -127,6 +128,13 @@ export async function handleStartNextTurnAction(payload: Slack.ActionPayload, re
     respond({ delete_original: true });
 }
 
+async function handleRedealAction(game: Game, slackId: string): Promise<Slack.SlashResponse> {
+    const thisPlayer = await PlayerController.getOrCreatePlayerWithSlackId(slackId, game.id);
+    console.log("Redealing to " + thisPlayer.id);
+    await redealCardsToPlayer(game.id, thisPlayer.id, game.currentturnidx);
+    return { response_type: "ephemeral", text: "You have a new hand!" };
+}
+
 async function handleNoQuerySlash(game: Game, slackId: string): Promise<Slack.SlashResponse> {
     // see what we can do
 
@@ -223,7 +231,9 @@ export async function handleSlash(slashPayload: Slack.SlashPayload): Promise<Sla
             if (slashQuery.length < 2)
                 return { response_type: "ephemeral", text: "Need to provide a GIF url" };
             return removeGif(slashQuery[1]);
-        
+
+        case "redeal":
+            return handleRedealAction(game, slashPayload.user_id);
         default:
             return handleNoQuerySlash(game, slashPayload.user_id);
     }
